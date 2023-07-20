@@ -34,7 +34,8 @@ setup(
 	],
 	install_requires=[
 		'Liquirizia@git+https://github.com/yong5eon/Liquirizia.git',
-		'Liquirizia.EventRunner@git+https://github.com/yong5eon/Liquirizia.Runner.git',
+		'Liquirizia.EventRunner@git+https://github.com/yong5eon/Liquirizia.EventRunner.git',
+		'Liquirizia.EventBroker@git+https://github.com/yong5eon/Liquirizia.EventBroker.git',
 	],
 	python_requires='>=3.8'
 )
