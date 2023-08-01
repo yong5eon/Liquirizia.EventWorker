@@ -32,7 +32,7 @@ class EventContext(object):
 	def brokers(self):
 		return self.context
 
-	def match(self, broker: str, key: str):
-		if (broker, key) not in self.ps:
+	def match(self, broker: str, queue: str):
+		if (broker, queue) not in self.ps:
 			return None
-		return self.ps[(broker, key)]
+		return self.ps[(broker, queue)]

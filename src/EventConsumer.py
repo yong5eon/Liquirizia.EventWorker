@@ -14,18 +14,17 @@ __all__ = (
 
 
 class EventConsumer(Runner, Handler):
-	def __init__(self, context: EventContext, pool: EventRunnerPool, handler: EventWorkerHandler = None, count: int = 1, size: int = 0):
+	def __init__(self, context: EventContext, pool: EventRunnerPool, handler: EventWorkerHandler = None, count: int = 1):
 		super(EventConsumer, self).__init__(self)
 		self.eventWorkerHandler = handler
 		self.context = context
 		self.pool = pool
 		self.count = count
-		self.size = size
 		return
 
 	def onInitialize(self, *args, **kwargs):
 		if self.eventWorkerHandler:
-			self.eventWorkerHandler.onInitializeConsumer(args[1], args[2], args[3], args[4])
+			self.eventWorkerHandler.onInitializeConsumer(args[1], args[2], args[3])
 		return
 
 	def onStart(self):
@@ -50,6 +49,6 @@ class EventConsumer(Runner, Handler):
 
 	def run(self):
 		for broker, queues in self.context.brokers().items():
-			self.add(Consumer, self.pool, broker, queues, self.count, self.size)
+			self.add(Consumer, self.pool, broker, queues, self.count)
 		super(EventConsumer, self).run()
 		return

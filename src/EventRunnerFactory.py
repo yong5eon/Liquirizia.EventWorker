@@ -5,7 +5,6 @@ from Liquirizia.EventBroker import EventBrokerHelper
 from Liquirizia.EventRunner import EventRunnerProperties
 from Liquirizia.EventRunner.Errors import *
 
-from .EventRunnerOptions import EventRunnerOptions
 from .EventWorkerHandler import EventWorkerHandler
 
 __all__ = (
@@ -14,14 +13,13 @@ __all__ = (
 
 
 class EventRunnerFactory(Runnable):
-	def __init__(self, handler: EventWorkerHandler, properties: EventRunnerProperties, broker: str, event: str, headers: dict = None, body=None, opts: EventRunnerOptions = None):
+	def __init__(self, handler: EventWorkerHandler, properties: EventRunnerProperties, broker: str, event: str, headers: dict = None, body=None):
 		self.handler = handler
 		self.properties = properties
 		self.broker = broker
 		self.event = event
 		self.headers = headers
 		self.body = body
-		self.opts = opts
 		return
 
 	def run(self):
@@ -35,18 +33,11 @@ class EventRunnerFactory(Runnable):
 			if self.properties.body:
 				self.body = self.properties.body(self.body)
 			obj = self.properties.object(self.event, self.headers)
-			res = obj.run(self.body)
-			if self.opts and self.opts.reply:
-				EventBrokerHelper.Send(
-					self.broker,
-					self.opts.reply,
-					self.event,
-					res,
-				)
+			obj.run(self.body)
 			for callback in self.properties.completes if self.properties.completes else []:
-				callback(self.event, self.headers, self.body, res)
+				callback(self.event, self.headers, self.body)
 			if self.handler:
-				self.handler.onEventSuccess(self.event, self.headers, self.body, res)
+				self.handler.onEventSuccess(self.event, self.headers, self.body)
 		except BaseException as e:
 			for callback in self.properties.errors if self.properties.errors else []:
 				callback(self.event, self.headers, self.body, e)

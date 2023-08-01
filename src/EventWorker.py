@@ -20,14 +20,13 @@ class EventWorker(object):
 	"""
 	EventWorker
 	"""
-	def __init__(self, handler: EventWorkerHandler = None, count=1, size=0):
+	def __init__(self, handler: EventWorkerHandler = None, count=1):
 		"""
 		constructor
 		"""
 		self.context = EventContext()
 		self.handler = handler
 		self.count = count
-		self.size = size
 		self.pool = None
 		self.consumer = None
 		return
@@ -38,9 +37,9 @@ class EventWorker(object):
 		"""
 		try:
 			if self.handler:
-				self.handler.onInitialize(self.context.brokers(), self.count, self.size, concurrency)
+				self.handler.onInitialize(self.context.brokers(), self.count, concurrency)
 			self.pool = EventRunnerPool(self.context, self.handler, size=concurrency)
-			self.consumer = EventConsumer(self.context, self.pool, self.handler, self.count, self.size)
+			self.consumer = EventConsumer(self.context, self.pool, self.handler, self.count)
 			if self.handler:
 				self.handler.onStart()
 			self.consumer.run()

@@ -7,8 +7,6 @@ from .EventWorkerHandler import EventWorkerHandler
 from .EventContext import EventContext
 from .EventRunnerFactory import EventRunnerFactory
 
-from .EventRunnerOptions import EventRunnerOptions
-
 __all__ = (
 	'EventRunnerPool'
 )
@@ -51,8 +49,8 @@ class EventRunnerPool(Pool, Handler):
 			self.eventWorkerHandler.onErrorRunner(error)
 		return
 
-	def add(self, broker: str, key: str, type: str, headers: dict = None, body = None, opts: EventRunnerOptions = None):
-		ps = self.context.match(broker, key)
+	def add(self, broker: str, queue: str, type: str, headers: dict = None, body = None):
+		ps = self.context.match(broker, queue)
 		for properties in ps if ps else []:
 			super(EventRunnerPool, self).add(
 				EventRunnerFactory,
@@ -62,6 +60,5 @@ class EventRunnerPool(Pool, Handler):
 				type,
 				headers,
 				body,
-				opts,
 			)
 		return

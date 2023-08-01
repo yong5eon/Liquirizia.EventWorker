@@ -9,7 +9,7 @@ class EventWorkerHandler(object):
 	"""
 	Event Worker Handler Interface
 	"""
-	def onInitialize(self, brokers, count, size, concurrency):
+	def onInitialize(self, brokers, count, concurrency):
 		raise NotImplementedError('{} must be implemented onInitialize'.format(self.__class__.__name__))
 
 	def onStart(self):
@@ -21,7 +21,7 @@ class EventWorkerHandler(object):
 	def onError(self, error=None):
 		raise NotImplementedError('{} must be implemented onError'.format(self.__class__.__name__))
 
-	def onInitializeConsumer(self, broker, queues, count, size):
+	def onInitializeConsumer(self, broker, queues, count):
 		raise NotImplementedError('{} must be implemented onInitializeConsumer'.format(self.__class__.__name__))
 
 	def onStartConsumer(self):
@@ -51,7 +51,7 @@ class EventWorkerHandler(object):
 	def onEvent(self, event, headers=None, body=None):
 		raise NotImplementedError('{} must be implemented onEvent'.format(self.__class__.__name__))
 
-	def onEventSuccess(self, event, headers=None, body=None, response=None):
+	def onEventSuccess(self, event, headers=None, body=None):
 		raise NotImplementedError('{} must be implemented onEventSucceeded'.format(self.__class__.__name__))
 
 	def onEventError(self, event, headers=None, body=None, error=None):
