@@ -6,6 +6,8 @@ from Liquirizia.EventBroker.Implements.RabbitMQ import (
 	Configuration,
 	Connection,
 )
+import Liquirizia.Serializer.Implements.Text
+import Liquirizia.Serializer.Implements.JavaScriptObjectNotation
 
 from random import randint
 from uuid import uuid4

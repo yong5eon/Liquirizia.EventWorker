@@ -5,6 +5,8 @@ from Liquirizia.EventBroker.Implements.RabbitMQ import (
 	Configuration,
 	Connection,
 )
+import Liquirizia.Serializer.Implements.Text
+import Liquirizia.Serializer.Implements.JavaScriptObjectNotation
 
 from Liquirizia.EventRunner import EventRunner, EventRunnerProperties
 from Liquirizia.EventRunner.Types import EventWorker as TypeWorker
