@@ -22,7 +22,16 @@ class SampleRunner(EventRunner):
 
 	def run(self, body=None):
 		print('EVENT : {} - {} - {}'.format(self.type, self.headers, body))
-		return body
+		if 'X-Reply-Broker' in self.headers.keys() and 'X-Reply-Broker-Queue' in self.headers.keys():
+			EventBrokerHelper.Send(
+				self.headers['X-Reply-Broker'], 
+				queue=self.headers['X-Reply-Broker-Queue'], 
+				event=self.type, 
+				body=body, 
+				format='text/plain', 
+				charset='utf-8'
+			)
+		return
 
 
 if __name__ == '__main__':
@@ -41,26 +50,12 @@ if __name__ == '__main__':
 
 	broker = EventBrokerHelper.Get('Sample')
 
-	topic = broker.topic()
-	topic.declare('topic.sample', alter='topic.error.route', persistent=False)
-
-	queue = broker.queue()
-	queue.declare('queue.complete', persistent=False)
-	queue.declare('queue.error', persistent=False)
-	queue.bind('topic.error.route', '*')
-	queue.declare('queue.sample', persistent=False)
-	queue.bind('topic.sample', 'event.sample')
-	queue.declare('queue.sample.compute.add', persistent=False)
-	queue.bind('topic.sample', 'event.sample.compute.add')
-	queue.declare('queue.sample.compute.sub', persistent=False)
-	queue.bind('topic.sample', 'event.sample.compute.sub')
-
 	worker = EventWorker(SampleEventWorkerHandler())
 	worker.add(EventRunnerProperties(
 		SampleRunner,
 		type=TypeWorker('event.sample', 'Sample', 'queue.sample'),
 	))
-	worker.load('*.conf')
+	worker.load('Liquirizia.EventWorker/sample/*.conf')
 	# worker.load('.', pattern='*.conf')
 
 	worker.run()

@@ -1,13 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from impm import ImportModule
-
-ImportModule('Liquirizia', 'Liquirizia/src')
-ImportModule('Liquirizia.EventBroker', 'Liquirizia.EventBroker/src')
-ImportModule('Liquirizia.EventBroker.Implements.RabbitMQ', 'Liquirizia.EventBroker.Implements.RabbitMQ/src')
-ImportModule('Liquirizia.EventRunner', 'Liquirizia.EventRunner/src')
-ImportModule('Liquirizia.EventWorker', 'Liquirizia.EventWorker/src')
-
 from Liquirizia.EventBroker import EventBrokerHelper
 from Liquirizia.EventBroker.Implements.RabbitMQ import (
 	Configuration,

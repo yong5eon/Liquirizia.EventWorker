@@ -10,9 +10,12 @@ __all__ = (
 
 
 class SampleEventWorkerHandler(EventWorkerHandler):
-	def onInitialize(self, brokers, count, size, concurrency):
+	def onInitialize(self, brokers, count, concurrency):
 		LOG_INITIALIZE(LOG_LEVEL_DEBUG, name='EVENT_WORKER')
-		LOG_INFO('EVENT WORKER INIT     : {}, {}, {}'.format(count, size, concurrency))
+		LOG_INFO('EVENT WORKER INIT')
+		LOG_INFO('BROKERS     : {}'.format(brokers))
+		LOG_INFO('COUNT       : {}'.format(count))
+		LOG_INFO('CONCURRENCY : {}'.format(concurrency))
 		return
 
 	def onStart(self):
@@ -28,10 +31,9 @@ class SampleEventWorkerHandler(EventWorkerHandler):
 		LOG_EXCEPTION(LOG_LEVEL_DEBUG, error)
 		return
 
-	def onInitializeConsumer(self, broker, queues, count, size):
-		LOG_INFO('EVENT CONSUMER INIT   : {}, {}, {}'.format(broker, count, size))
+	def onInitializeConsumer(self, broker, queues, count):
 		for queue in queues:
-			LOG_DEBUG('QUEUE                 : {}'.format(queue))
+			LOG_INFO('EVENT CONSUMER INIT : {}, {}, {}'.format(broker, queue, count))
 		return
 
 	def onStartConsumer(self):
@@ -81,12 +83,11 @@ class SampleEventWorkerHandler(EventWorkerHandler):
 		))
 		return
 
-	def onEventSuccess(self, event, headers=None, body=None, response=None):
-		LOG_INFO('EVENT SUCCESS         : {}, {}, {}, {}'.format(
+	def onEventSuccess(self, event, headers=None, body=None):
+		LOG_INFO('EVENT SUCCESS         : {}, {}, {}'.format(
 			event,
 			headers,
 			body,
-			response
 		))
 		return
 
