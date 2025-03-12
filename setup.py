@@ -29,13 +29,13 @@ setup(
 		'Programming Language :: Python :: 3.9',
 		'Programming Language :: Python :: 3.10',
 		'Programming Language :: Python :: 3.11',
-		'Application Framework :: Liquirizia',
-		'Application Framework :: Liquirizia :: EventWorker',
+		'Programming Language :: Python :: 3.12',
+		'Programming Language :: Python :: 3.13',
+		'Liquirizia',
+		'Liquirizia :: EventWorker',
 	],
 	install_requires=[
 		'Liquirizia@git+https://github.com/yong5eon/Liquirizia.git',
-		'Liquirizia.EventRunner@git+https://github.com/yong5eon/Liquirizia.EventRunner.git',
-		'Liquirizia.EventBroker@git+https://github.com/yong5eon/Liquirizia.EventBroker.git',
 	],
 	python_requires='>=3.8'
 )
