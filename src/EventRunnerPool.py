@@ -5,6 +5,7 @@ from .EventRunner import (
 	EventRunnerComplete,
 	EventRunnerError,
 )
+from .EventContext import EventContext
 
 from multiprocessing import get_context
 from multiprocessing.pool import (
@@ -17,6 +18,7 @@ from typing import Type, Union, Sequence, Mapping, Dict, Any
 __all__ = (
 	'EventRunnerFactory',
 	'EventRunnerPool',
+	'EventParameters',
 	'ThreadEventRunnerPool',
 	'ProcessEventRunnerPool',
 )
@@ -37,15 +39,10 @@ class EventRunnerFactory(object):
 		if self.errors and not isinstance(self.errors, Sequence):
 			self.errors = [self.errors]
 		return
-	def __call__(self, body: Any):
+	def __call__(self, *args, **kwargs):
 		try:
 			runner = self.runner()
-			if isinstance(body, Mapping):
-				completion = runner.run(**body)
-			elif isinstance(body, Sequence):
-				completion = runner.run(*body)
-			else:
-				completion = runner.run(body)
+			completion = runner.run(*args, **kwargs)
 		except Exception as e:
 			for error in self.errors if self.errors else []:
 				error(e)
@@ -53,6 +50,13 @@ class EventRunnerFactory(object):
 			for complete in self.completes if self.completes else []:
 				complete(completion)
 			return
+		
+
+class EventParameters(object):
+	def __init__(self, *args, **kwargs):
+		self.args = args
+		self.kwargs = kwargs
+		return
 
 
 class EventRunnerPool(ABC):
@@ -68,22 +72,35 @@ class EventRunnerPool(ABC):
 
 	def __len__(self):
 		return len(self.runners)
+	
+	def run(self, event: str, parameters: EventParameters = EventParameters()):
+		ctx = EventContext()
+		event = ctx.context.get(event, None)
+		if not event:
+			raise RuntimeError('Event not found')
+		self.add(
+			event['runner'],
+			completes=event['completes'],
+			errors=event['errors'],
+			parameters=parameters,
+		)
+		return
 
 	def add(
 		self,
 		runner: Type[EventRunner],
-		body: Any,
 		completes: Union[EventRunnerComplete, Sequence[EventRunnerComplete]] = None,
-		errors: Union[EventRunnerError, Sequence[EventRunnerError]] = None
+		errors: Union[EventRunnerError, Sequence[EventRunnerError]] = None,
+		parameters: EventParameters = EventParameters(),
 	):
 		self.runners.append(self.pool.apply_async(
 			EventRunnerFactory(runner, completes=completes, errors=errors),
-			args=(body,),
-			kwds={},
+			args=parameters.args,
+			kwds=parameters.kwargs,
 			error_callback=None
 		))
 		return
-
+	
 	def waits(self, timeout=None):
 		for runner in self.runners:
 			runner.wait(timeout)

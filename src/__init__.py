@@ -8,7 +8,10 @@ from .EventRunner import (
 	EventRunnerComplete,
 	EventRunnerError,
 )
+from .EventProperties import EventProperties
+from .EventContext import EventContext
 from .EventRunnerPool import (
+	EventParameters,
 	EventRunnerPool,
 	ThreadEventRunnerPool,
 	ProcessEventRunnerPool,
@@ -24,7 +27,12 @@ __all__ = (
 	'EventRunner',
 	'EventRunnerComplete',
 	'EventRunnerError',
+	# EventProperties
+	'EventProperties',
+	# EventContext
+	'EventContext',
 	# EventRunnerPool
+	'EventParameters',
 	'EventRunnerPool',
 	'ThreadEventRunnerPool',
 	'ProcessEventRunnerPool',
