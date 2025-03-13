@@ -7,7 +7,9 @@ from Liquirizia.EventWorker import (
 	EventRunner,
 	EventRunnerComplete,
 	EventRunnerError,
+	EventProperties,
 	EventRunnerPool,
+	EventParameters,
 	ThreadEventRunnerPool,
 	ProcessEventRunnerPool,
 )
@@ -26,7 +28,11 @@ class SampleEventRunnerError(EventRunnerError):
 	def __call__(self, error: BaseException):
 		print('Error : {}'.format(str(error)))
 	
-
+@EventProperties(
+	event='SampleEvent',
+	completes=SampleEventRunnerComplete(),
+	errors=SampleEventRunnerError(),
+)
 class SampleEventRunner(EventRunner):
 	def run(self, body):
 		print('Run : {}'.format(body))
@@ -42,7 +48,10 @@ class SampleEventInvoker(EventInvoker):
 		return
 	def run(self):
 		while self.context:
-			self.pool.add(SampleEventRunner, randint(0, 10), SampleEventRunnerComplete(), SampleEventRunnerError())
+			self.pool.run(
+				event='SampleEvent',
+				parameters=EventParameters(randint(0, 10)),
+			)
 			sleep(1)
 		return
 	def stop(self):

@@ -7,7 +7,9 @@ from Liquirizia.EventWorker import (
 	EventRunner,
 	EventRunnerComplete,
 	EventRunnerError,
+	EventProperties,
 	EventRunnerPool,
+	EventParameters,
 	ThreadEventRunnerPool,
 	ProcessEventRunnerPool,
 )
@@ -36,6 +38,11 @@ class SampleEventRunnerError(EventRunnerError):
 		print('Error : {}'.format(str(error)))
 	
 
+@EventProperties(
+	event='SampleEvent',
+	completes=SampleEventRunnerComplete(),
+	errors=SampleEventRunnerError(),
+)
 class SampleEventRunner(EventRunner):
 	def run(self, body):
 		print('Run : {}'.format(body))
@@ -50,7 +57,10 @@ class SampleEventHandler(EventHandler):
 		return
 	def __call__(self, event):
 		print('Event : {}'.format(event.body))
-		self.pool.add(SampleEventRunner, event.body, SampleEventRunnerComplete(), SampleEventRunnerError())
+		self.pool.run(
+			event='SampleEvent',
+			parameters=EventParameters(event.body)
+		)
 		event.ack()
 		return
 
@@ -91,7 +101,7 @@ if __name__ == '__main__':
 	print('EventBroker init...')
 	con: Connection = Helper.Get('Sample')
 	con.createQueue('queue')
-	queue = con.queue('queue')
+	queue: Queue = con.queue('queue')
 	for i in range(10):
 		v = randint(0, 10)
 		queue.send(v)
