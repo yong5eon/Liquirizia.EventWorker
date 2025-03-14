@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from Liquirizia.EventWorker import (
-	EventWorkerContext,
 	EventWorker,
 	EventInvoker,
 	EventRunnerPool,
@@ -51,7 +50,7 @@ class Error(EventRunnerError):
 
 @EventProperties(
 	event='+',
-	parameters='Q.*',
+	parameters='Q.+',
 	completes=Complete(),
 	errors=Error(),
 )
@@ -121,22 +120,23 @@ class SampleEventHandler(EventHandler):
 
 
 class SampleEventConsumer(EventInvoker):
-	def __init__(self, context: EventWorkerContext, pool: EventRunnerPool):
-		self.context = context
+	def __init__(self, pool: EventRunnerPool):
 		self.pool = pool
 		self.consumer = None
 		return
 	def run(self):
+		ctx = EventContext()
 		con: Connection = Helper.Get('Sample')
 		self.consumer: Consumer = con.consumer(SampleEventHandler(self.pool))
-		self.consumer.subs('queue')
+		for event, queue in ctx.parameters().items():
+			LOG_DEBUG('Subscribe : {}'.format(event))
+			self.consumer.subs(queue)
 		LOG_INFO('Consumer running...')
 		self.consumer.run()
 		LOG_INFO('Consumer stopped...')
 		return
 	def stop(self):
-		if self.consumer:
-			self.consumer.stop()
+		if self.consumer: self.consumer.stop()
 		return
 
 
@@ -155,16 +155,24 @@ if __name__ == '__main__':
 		)
 	)
 
+	ctx = EventContext()
+
 	LOG_INFO('EventBroker init...')
 	EVENT = ['+', '-', '*', '/', '%']
 	con: Connection = Helper.Get('Sample')
-	con.createQueue('queue')
-	queue: Queue = con.queue('queue')
+
+	for k, param in ctx.parameters().items():
+		LOG_INFO('Create queue : {}'.format(param))
+		con.createQueue(param)
+
+	params = ctx.parameters()
 	for i in range(100):
 		event = EVENT[randint(0, 4)]
-		a = randint(0, 9)
-		b = randint(0, 9)
-		queue.send({'a': a, 'b': b}, event=event)
+		queue = params[event]
+		body = {'a': randint(0, 9), 'b': randint(0, 9)}	
+		LOG_DEBUG('Send : event={}, body={} to {}'.format(event, body, queue))
+		q: Queue = con.queue(queue)
+		q.send(body, event=event)
 
 	worker = EventWorker(ThreadEventRunnerPool(), SampleEventConsumer)
 	def stop(signal, frame):
@@ -177,4 +185,6 @@ if __name__ == '__main__':
 	LOG_INFO('EventWorker stopped...')
 
 	LOG_INFO('EventBroker clean...')
-	con.deleteQueue('queue')
+	for k, param in ctx.parameters().items():
+		LOG_INFO('Delete queue : {}'.format(param))
+		con.deleteQueue(param)

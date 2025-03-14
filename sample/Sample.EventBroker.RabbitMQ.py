@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from Liquirizia.EventWorker import (
-	EventWorkerContext,
 	EventWorker,
 	EventInvoker,
 	EventRunnerPool,
@@ -115,8 +114,7 @@ class SampleEventHandler(EventHandler):
 
 
 class SampleEventConsumer(EventInvoker):
-	def __init__(self, context: EventWorkerContext, pool: EventRunnerPool):
-		self.context = context
+	def __init__(self, pool: EventRunnerPool):
 		self.pool = pool
 		self.consumer = None
 		return
@@ -129,8 +127,7 @@ class SampleEventConsumer(EventInvoker):
 		LOG_INFO('Consumer stopped...')
 		return
 	def stop(self):
-		if self.consumer:
-			self.consumer.stop()
+		if self.consumer: self.consumer.stop()
 		return
 
 

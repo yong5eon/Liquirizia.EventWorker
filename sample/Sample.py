@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from Liquirizia.EventWorker import (
-	EventWorkerContext,
 	EventWorker,
 	EventInvoker,
 	EventRunnerPool,
@@ -24,6 +23,7 @@ from Liquirizia.Logger import (
 	LOG_DEBUG,
 )
 
+from multiprocessing import get_context
 from signal import signal, SIGINT
 from random import randint
 from time import sleep
@@ -93,13 +93,13 @@ class Mod(EventRunner):
 
 
 class SampleEventInvoker(EventInvoker):
-	def __init__(self, context: EventWorkerContext, pool: EventRunnerPool):
-		self.context = context
+	def __init__(self, pool: EventRunnerPool):
+		self.event = get_context().Manager().Event()
 		self.pool = pool
 		return
 	def run(self):
 		EVENT = ['+', '-', '*', '/', '%']
-		while self.context:
+		while not self.event.is_set():
 			event = EVENT[randint(0, 4)]
 			a = randint(0, 9)
 			b = randint(0, 9)
@@ -111,7 +111,8 @@ class SampleEventInvoker(EventInvoker):
 			sleep(1)
 		return
 	def stop(self):
-		pass
+		self.event.set()
+		return
 
 
 if __name__ == '__main__':
