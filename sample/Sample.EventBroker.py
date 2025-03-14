@@ -28,7 +28,6 @@ from Liquirizia.Logger import (
 )
 
 from signal import signal, SIGINT
-from time import sleep
 from random import randint
 
 

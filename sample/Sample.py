@@ -19,8 +19,8 @@ from Liquirizia.Logger import (
 )
 
 from signal import signal, SIGINT
-from time import sleep
 from random import randint
+from time import sleep
 
 
 class SampleEventInvoker(EventInvoker):
