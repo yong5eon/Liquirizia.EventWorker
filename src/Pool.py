@@ -5,8 +5,11 @@ from .EventRunner import (
 	EventRunnerComplete,
 	EventRunnerError,
 )
-from .Factory import Factory, EventRunnerFactory
-from .EventContext import EventContext
+from .Factory import Factory
+from .EventContext import (
+	EventContext,
+	EventRunnerFactory,
+)
 
 from multiprocessing import get_context
 from multiprocessing.pool import (
@@ -17,21 +20,21 @@ from abc import ABC, ABCMeta, abstractmethod
 from typing import Type, Union, Sequence, Mapping, Dict, Any
 
 __all__ = (
-	'EventRunnerPool',
-	'EventParameters',
-	'ThreadEventRunnerPool',
-	'ProcessEventRunnerPool',
+	'Parameters',
+	'Pool',
+	'ThreadPool',
+	'ProcessPool',
 )
 
 
-class EventParameters(object):
+class Parameters(object):
 	def __init__(self, *args, **kwargs):
 		self.args = args
 		self.kwargs = kwargs
 		return
 
 
-class EventRunnerPool(ABC):
+class Pool(ABC):
 	"""EventRunner Pool Abstract Class"""
 	def __init__(self, pool: Union[PyProcessPool, PyThreadPool]):
 		self.pool = pool
@@ -53,7 +56,7 @@ class EventRunnerPool(ABC):
 	def __len__(self):
 		return len(self.runners)
 	
-	def run(self, event: str, parameters: EventParameters = EventParameters()):
+	def run(self, event: str, parameters: Parameters = Parameters()):
 		ctx = EventContext()
 		event = ctx.context.get(event, None)
 		if not event:
@@ -72,7 +75,7 @@ class EventRunnerPool(ABC):
 		runner: Type[EventRunner],
 		completes: Union[EventRunnerComplete, Sequence[EventRunnerComplete]] = None,
 		errors: Union[EventRunnerError, Sequence[EventRunnerError]] = None,
-		parameters: EventParameters = EventParameters(),
+		parameters: Parameters = Parameters(),
 		factory: Type[Factory] = EventRunnerFactory,
 	):
 		self.runners.append(self.pool.apply_async(
@@ -99,16 +102,15 @@ class EventRunnerPool(ABC):
 		return
 
 
-class ThreadEventRunnerPool(EventRunnerPool):
+class ThreadPool(Pool):
 	"""EventRunner ThreadPool Class"""
 	def __init__(self, max: int = None):
 		super().__init__(PyThreadPool(max))
 		return
 
 
-class ProcessEventRunnerPool(EventRunnerPool):
+class ProcessPool(Pool):
 	"""EventRunner ProcessPool Class"""
 	def __init__(self, max: int = None):
-		# super().__init__(get_context().Pool(max))
 		super().__init__(pool=PyProcessPool(max))
 		return	

@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from .EventRunnerPool import EventRunnerPool
-from .EventInvoker import EventInvoker
+from .Pool import Pool
+from .Invoker import Invoker
 
 from typing import Type
 
 __all__ = (
-	'Event',
-	'EventWorker'
+	'Worker'
 )
 
 
-class EventWorker(object):
+class Worker(object):
 	"""Event Worker"""
-	def __init__(self, pool: EventRunnerPool, invoker: Type[EventInvoker]):
+	def __init__(self, pool: Pool, invoker: Type[Invoker]):
 		self.pool = pool
 		self.invoker = invoker(pool)
 		return

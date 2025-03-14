@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from .EventRunnerPool import EventRunnerPool
+from .Pool import Pool
 
 from abc import ABCMeta, abstractmethod
 
 __all__ = (
-	'EventInvoker',
+	'Invoker',
 )
 
 
-class EventInvoker(metaclass=ABCMeta):
+class Invoker(metaclass=ABCMeta):
 	"""Event Invoker Interface"""
 	@abstractmethod
-	def __init__(self, pool: EventRunnerPool):
+	def __init__(self, pool: Pool):
 		raise NotImplementedError('{} must be implemented __init__'.format(self.__class__.__name__))
 	@abstractmethod
 	def run(self):

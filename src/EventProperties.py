@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
+from .Factory import Factory
 from .EventRunner import (
 	EventRunner,
 	EventRunnerComplete,
 	EventRunnerError,
 )
-from .Factory import (
-	Factory,
+from .EventContext import (
+	EventContext,
 	EventRunnerFactory,
 )
-from .EventContext import EventContext
 
 from typing import Type, Sequence, Union, Any
 
