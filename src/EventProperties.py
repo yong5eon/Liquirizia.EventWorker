@@ -11,7 +11,7 @@ from .Factory import (
 )
 from .EventContext import EventContext
 
-from typing import Type, Sequence, Union
+from typing import Type, Sequence, Union, Any
 
 __all__ = (
 	'EventProperties',
@@ -23,11 +23,13 @@ class EventProperties(object):
 	def __init__(
 		self,
 		event: str,
+		parameters: Any = None,
 		completes: Union[EventRunnerComplete, Sequence[EventRunnerComplete]] = None,
 		errors: Union[EventRunnerError, Sequence[EventRunnerError]] = None,
 		factory: Type[Factory] = EventRunnerFactory,
 	):
 		self.event = event
+		self.parameters = parameters
 		self.completes = completes
 		if self.completes and not isinstance(self.completes, Sequence):
 			self.completes = [self.completes]
@@ -45,5 +47,6 @@ class EventProperties(object):
 			completes=self.completes,
 			errors=self.errors,
 			factory=self.factory,
+			eventParameters=self.parameters,
 		)
 		return o
