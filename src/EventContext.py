@@ -7,6 +7,10 @@ from .EventRunner import (
 	EventRunnerComplete,
 	EventRunnerError,
 )
+from .Factory import (
+	Factory,
+	EventRunnerFactory,
+)
 
 from typing import Type, Sequence, Union
 
@@ -27,6 +31,7 @@ class EventContext(Singleton):
 		runner: Type[EventRunner],
 		completes: Union[EventRunnerComplete, Sequence[EventRunnerComplete]] = None,
 		errors: Union[EventRunnerError, Sequence[EventRunnerError]] = None,
+		factory: Type[Factory] = EventRunnerFactory,
 	):
 		if event in self.context:
 			raise RuntimeError('Event already exists')
@@ -38,6 +43,7 @@ class EventContext(Singleton):
 			'runner': runner,
 			'completes': completes,
 			'errors': errors,
+			'factory': factory,
 		}
 		return
 

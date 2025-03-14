@@ -8,6 +8,10 @@ from .EventRunner import (
 	EventRunnerComplete,
 	EventRunnerError,
 )
+from .Factory import (
+	Factory,
+	EventRunnerFactory,
+)
 from .EventProperties import EventProperties
 from .EventContext import EventContext
 from .EventRunnerPool import (
@@ -27,6 +31,9 @@ __all__ = (
 	'EventRunner',
 	'EventRunnerComplete',
 	'EventRunnerError',
+	# Factory
+	'Factory',
+	'EventRunnerFactory',
 	# EventProperties
 	'EventProperties',
 	# EventContext

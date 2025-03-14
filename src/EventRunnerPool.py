@@ -5,6 +5,7 @@ from .EventRunner import (
 	EventRunnerComplete,
 	EventRunnerError,
 )
+from .Factory import Factory, EventRunnerFactory
 from .EventContext import EventContext
 
 from multiprocessing import get_context
@@ -12,45 +13,16 @@ from multiprocessing.pool import (
 	Pool as PyProcessPool,
 	ThreadPool as PyThreadPool,
 )
-from abc import ABC
+from abc import ABC, ABCMeta, abstractmethod
 from typing import Type, Union, Sequence, Mapping, Dict, Any
 
 __all__ = (
-	'EventRunnerFactory',
 	'EventRunnerPool',
 	'EventParameters',
 	'ThreadEventRunnerPool',
 	'ProcessEventRunnerPool',
 )
 
-
-class EventRunnerFactory(object):
-	def __init__(
-		self,
-		runner: Type[EventRunner],
-		completes: Union[EventRunnerComplete, Sequence[EventRunnerComplete]] = None,
-		errors: Union[EventRunnerError, Sequence[EventRunnerError]] = None,
-	):
-		self.runner = runner
-		self.completes = completes
-		if self.completes and not isinstance(self.completes, Sequence):
-			self.completes = [self.completes]
-		self.errors = errors
-		if self.errors and not isinstance(self.errors, Sequence):
-			self.errors = [self.errors]
-		return
-	def __call__(self, *args, **kwargs):
-		try:
-			runner = self.runner()
-			completion = runner.run(*args, **kwargs)
-		except Exception as e:
-			for error in self.errors if self.errors else []:
-				error(e)
-		else:
-			for complete in self.completes if self.completes else []:
-				complete(completion)
-			return
-		
 
 class EventParameters(object):
 	def __init__(self, *args, **kwargs):
@@ -67,7 +39,15 @@ class EventRunnerPool(ABC):
 		return
 
 	def __del__(self):
-		self.stop()
+		try:
+			self.stop()
+		except:
+			pass
+		finally:
+			try:
+				self.pool = None
+			except:
+				pass
 		return
 
 	def __len__(self):
@@ -83,6 +63,7 @@ class EventRunnerPool(ABC):
 			completes=event['completes'],
 			errors=event['errors'],
 			parameters=parameters,
+			factory=event['factory'],
 		)
 		return
 
@@ -92,9 +73,10 @@ class EventRunnerPool(ABC):
 		completes: Union[EventRunnerComplete, Sequence[EventRunnerComplete]] = None,
 		errors: Union[EventRunnerError, Sequence[EventRunnerError]] = None,
 		parameters: EventParameters = EventParameters(),
+		factory: Type[Factory] = EventRunnerFactory,
 	):
 		self.runners.append(self.pool.apply_async(
-			EventRunnerFactory(runner, completes=completes, errors=errors),
+			factory(runner, completes=completes, errors=errors),
 			args=parameters.args,
 			kwds=parameters.kwargs,
 			error_callback=None
@@ -109,13 +91,11 @@ class EventRunnerPool(ABC):
 	def stop(self):
 		self.pool.close()
 		self.pool.join()
-		self.pool = None
 		return
 
 	def shutdown(self):
 		self.pool.terminate()
 		self.pool.join()
-		self.pool = None
 		return
 
 
