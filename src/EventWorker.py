@@ -2,7 +2,6 @@
 
 from .EventRunnerPool import EventRunnerPool
 from .EventInvoker import EventInvoker
-from .EventWorkerContext import EventWorkerContext
 
 from typing import Type
 
@@ -15,9 +14,8 @@ __all__ = (
 class EventWorker(object):
 	"""Event Worker"""
 	def __init__(self, pool: EventRunnerPool, invoker: Type[EventInvoker]):
-		self.context = EventWorkerContext()
-		self.invoker = invoker(self.context, pool)
 		self.pool = pool
+		self.invoker = invoker(pool)
 		return
 
 	def run(self):
@@ -26,5 +24,4 @@ class EventWorker(object):
 
 	def stop(self):
 		self.invoker.stop()
-		self.context.stop()
 		return

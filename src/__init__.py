@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from .EventWorkerContext import EventWorkerContext
 from .EventWorker import EventWorker
 from .EventInvoker import EventInvoker
 from .EventRunner import (
@@ -23,7 +22,6 @@ from .EventRunnerPool import (
 
 __all__ = (
 	# EventWorker
-	'EventWorkerContext',
 	'EventWorker',
 	# EventInvoker
 	'EventInvoker',

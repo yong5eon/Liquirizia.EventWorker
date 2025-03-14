@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from .EventWorkerContext import EventWorkerContext
 from .EventRunnerPool import EventRunnerPool
 
 from abc import ABCMeta, abstractmethod
@@ -13,7 +12,7 @@ __all__ = (
 class EventInvoker(metaclass=ABCMeta):
 	"""Event Invoker Interface"""
 	@abstractmethod
-	def __init__(self, context: EventWorkerContext, pool: EventRunnerPool):
+	def __init__(self, pool: EventRunnerPool):
 		raise NotImplementedError('{} must be implemented __init__'.format(self.__class__.__name__))
 	@abstractmethod
 	def run(self):
