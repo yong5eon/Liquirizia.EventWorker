@@ -4,41 +4,23 @@ from Liquirizia.EventWorker import (
 	EventWorkerContext,
 	EventWorker,
 	EventInvoker,
-	EventRunner,
-	EventRunnerComplete,
-	EventRunnerError,
-	EventProperties,
 	EventRunnerPool,
 	EventParameters,
 	ThreadEventRunnerPool,
 	ProcessEventRunnerPool,
 )
 
+from SampleEventRunner import *
+
+from Liquirizia.Logger import (
+	LOG_INIT,
+	LOG_LEVEL_DEBUG,
+	LOG_INFO,
+)
+
 from signal import signal, SIGINT
 from time import sleep
 from random import randint
-
-
-class SampleEventRunnerComplete(EventRunnerComplete):
-	def __call__(self, completion):
-		print('Complete : {}'.format(completion))
-		return
-	
-class SampleEventRunnerError(EventRunnerError):
-	def __call__(self, error: BaseException):
-		print('Error : {}'.format(str(error)))
-	
-@EventProperties(
-	event='SampleEvent',
-	completes=SampleEventRunnerComplete(),
-	errors=SampleEventRunnerError(),
-)
-class SampleEventRunner(EventRunner):
-	def run(self, body):
-		print('Run : {}'.format(body))
-		if body % 2 == 0:
-			raise ValueError('Even number')
-		return body
 
 
 class SampleEventInvoker(EventInvoker):
@@ -47,10 +29,15 @@ class SampleEventInvoker(EventInvoker):
 		self.pool = pool
 		return
 	def run(self):
+		EVENT = ['+', '-', '*', '/', '%']
 		while self.context:
+			event = EVENT[randint(0, 4)]
+			a = randint(0, 9)
+			b = randint(0, 9)
+			LOG_INFO('Event : type={}, {}'.format(a, {'a': a, 'b': b}))
 			self.pool.run(
-				event='SampleEvent',
-				parameters=EventParameters(randint(0, 10)),
+				event=event,
+				parameters=EventParameters(**{'a': a, 'b': b}),
 			)
 			sleep(1)
 		return
@@ -59,13 +46,13 @@ class SampleEventInvoker(EventInvoker):
 
 
 if __name__ == '__main__':
-	MAX = 2
-	worker = EventWorker(ThreadEventRunnerPool(MAX), SampleEventInvoker)
+	LOG_INIT(LOG_LEVEL_DEBUG)
+	worker = EventWorker(ThreadEventRunnerPool(), SampleEventInvoker)
 	def stop(signal, frame):
-		print('EventWorker stopping...')
+		LOG_INFO('EventWorker stopping...')
 		worker.stop()
 		return
 	signal(SIGINT, stop)
-	print('EventWorker running until break with keyboard interrupt...')
+	LOG_INFO('EventWorker running until break with keyboard interrupt...')
 	worker.run()
-	print('EventWorker stopped...')
+	LOG_INFO('EventWorker stopped...')

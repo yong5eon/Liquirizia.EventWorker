@@ -4,10 +4,6 @@ from Liquirizia.EventWorker import (
 	EventWorkerContext,
 	EventWorker,
 	EventInvoker,
-	EventRunner,
-	EventRunnerComplete,
-	EventRunnerError,
-	EventProperties,
 	EventRunnerPool,
 	EventParameters,
 	ThreadEventRunnerPool,
@@ -23,43 +19,28 @@ from Liquirizia.EventBroker.Implements.RabbitMQ import (
 	EventHandler,
 ) 
 
+from SampleEventRunner import *
+
+from Liquirizia.Logger import (
+	LOG_INIT,
+	LOG_LEVEL_DEBUG,
+	LOG_INFO,
+)
+
 from signal import signal, SIGINT
 from time import sleep
 from random import randint
 
-
-class SampleEventRunnerComplete(EventRunnerComplete):
-	def __call__(self, completion):
-		print('Complete : {}'.format(completion))
-		return
-	
-class SampleEventRunnerError(EventRunnerError):
-	def __call__(self, error: BaseException):
-		print('Error : {}'.format(str(error)))
-	
-
-@EventProperties(
-	event='SampleEvent',
-	completes=SampleEventRunnerComplete(),
-	errors=SampleEventRunnerError(),
-)
-class SampleEventRunner(EventRunner):
-	def run(self, body):
-		print('Run : {}'.format(body))
-		if body % 2 == 0:
-			raise ValueError('Even number')
-		return body
-	
 
 class SampleEventHandler(EventHandler):
 	def __init__(self, pool: EventRunnerPool):
 		self.pool = pool
 		return
 	def __call__(self, event):
-		print('Event : {}'.format(event.body))
+		LOG_INFO('Event : type={}, {}'.format(event.type, event.body))
 		self.pool.run(
-			event='SampleEvent',
-			parameters=EventParameters(event.body)
+			event=event.type,
+			parameters=EventParameters(**event.body)
 		)
 		event.ack()
 		return
@@ -75,9 +56,9 @@ class SampleEventConsumer(EventInvoker):
 		con: Connection = Helper.Get('Sample')
 		self.consumer: Consumer = con.consumer(SampleEventHandler(self.pool))
 		self.consumer.subs('queue')
-		print('Consumer running...')
+		LOG_INFO('Consumer running...')
 		self.consumer.run()
-		print('Consumer stopped...')
+		LOG_INFO('Consumer stopped...')
 		return
 	def stop(self):
 		if self.consumer:
@@ -86,6 +67,8 @@ class SampleEventConsumer(EventInvoker):
 
 
 if __name__ == '__main__':
+
+	LOG_INIT(LOG_LEVEL_DEBUG)
 
 	Helper.Set(
 		'Sample',
@@ -98,25 +81,26 @@ if __name__ == '__main__':
 		)
 	)
 
-	print('EventBroker init...')
+	LOG_INFO('EventBroker init...')
+	EVENT = ['+', '-', '*', '/', '%']
 	con: Connection = Helper.Get('Sample')
 	con.createQueue('queue')
 	queue: Queue = con.queue('queue')
-	for i in range(10):
-		v = randint(0, 10)
-		queue.send(v)
-		print('Send : {}'.format(v))
+	for i in range(100):
+		event = EVENT[randint(0, 4)]
+		a = randint(0, 9)
+		b = randint(0, 9)
+		queue.send({'a': a, 'b': b}, event=event)
 
-	MAX = 2
-	worker = EventWorker(ThreadEventRunnerPool(MAX), SampleEventConsumer)
+	worker = EventWorker(ThreadEventRunnerPool(), SampleEventConsumer)
 	def stop(signal, frame):
-		print('EventWorker stopping...')
+		LOG_INFO('EventWorker stopping...')
 		worker.stop()
 		return
 	signal(SIGINT, stop)
-	print('EventWorker running until break with keyboard interrupt...')
+	LOG_INFO('EventWorker running until break with keyboard interrupt...')
 	worker.run()
-	print('EventWorker stopped...')
+	LOG_INFO('EventWorker stopped...')
 
-	print('EventBroker clean...')
+	LOG_INFO('EventBroker clean...')
 	con.deleteQueue('queue')
