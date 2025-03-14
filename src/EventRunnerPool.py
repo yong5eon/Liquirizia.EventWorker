@@ -121,14 +121,14 @@ class EventRunnerPool(ABC):
 
 class ThreadEventRunnerPool(EventRunnerPool):
 	"""EventRunner ThreadPool Class"""
-	def __init__(self, max: int):
+	def __init__(self, max: int = None):
 		super().__init__(PyThreadPool(max))
 		return
 
 
 class ProcessEventRunnerPool(EventRunnerPool):
 	"""EventRunner ProcessPool Class"""
-	def __init__(self, max: int):
+	def __init__(self, max: int = None):
 		# super().__init__(get_context().Pool(max))
 		super().__init__(pool=PyProcessPool(max))
 		return	
