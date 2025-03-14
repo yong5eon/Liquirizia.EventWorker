@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
 
 from Liquirizia.EventWorker import (
-	EventWorker,
-	EventInvoker,
-	EventRunnerPool,
-	EventParameters,
+	Worker,
+	Invoker,
+	Pool,
+	ThreadPool,
+	ProcessPool,
+	Parameters,
 	EventContext,
-	ThreadEventRunnerPool,
-	ProcessEventRunnerPool,
-)
-from Liquirizia.EventWorker import (
+	EventProperties,
 	EventRunner,
 	EventRunnerComplete,
 	EventRunnerError,
-	EventProperties,
 )
 
 from Liquirizia.EventBroker import Helper
@@ -106,21 +104,21 @@ class Mod(EventRunner):
 
 
 class SampleEventHandler(EventHandler):
-	def __init__(self, pool: EventRunnerPool):
+	def __init__(self, pool: Pool):
 		self.pool = pool
 		return
 	def __call__(self, event):
 		LOG_INFO('Event : type={}, {}'.format(event.type, event.body))
 		self.pool.run(
 			event=event.type,
-			parameters=EventParameters(**event.body)
+			parameters=Parameters(**event.body)
 		)
 		event.ack()
 		return
 
 
-class SampleEventConsumer(EventInvoker):
-	def __init__(self, pool: EventRunnerPool):
+class SampleConsumer(Invoker):
+	def __init__(self, pool: Pool):
 		self.pool = pool
 		self.consumer = None
 		return
@@ -174,7 +172,7 @@ if __name__ == '__main__':
 		q: Queue = con.queue(queue)
 		q.send(body, event=event)
 
-	worker = EventWorker(ThreadEventRunnerPool(), SampleEventConsumer)
+	worker = Worker(ThreadPool(), SampleConsumer)
 	def stop(signal, frame):
 		LOG_INFO('EventWorker stopping...')
 		worker.stop()

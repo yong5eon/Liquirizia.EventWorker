@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
 
 from Liquirizia.EventWorker import (
-	EventWorker,
-	EventInvoker,
-	EventRunnerPool,
-	EventParameters,
-	ThreadEventRunnerPool,
-	ProcessEventRunnerPool,
+	Worker,
+	Invoker,
+	Pool,
+	ThreadPool,
+	ProcessPool,
+	Parameters,
 	EventContext,
-)
-from Liquirizia.EventWorker import (
+	EventProperties,
 	EventRunner,
 	EventRunnerComplete,
 	EventRunnerError,
-	EventProperties,
 )
 
 from Liquirizia.Logger import (
@@ -99,8 +97,8 @@ class Mod(EventRunner):
 		return a % b
 
 
-class SampleEventInvoker(EventInvoker):
-	def __init__(self, pool: EventRunnerPool):
+class SampleEventInvoker(Invoker):
+	def __init__(self, pool: Pool):
 		self.event = get_context().Manager().Event()
 		self.pool = pool
 		self.sched = BackgroundScheduler(timezone='Asia/Seoul')
@@ -111,7 +109,7 @@ class SampleEventInvoker(EventInvoker):
 		LOG_INFO('Event : type={}, {}'.format(a, {'a': a, 'b': b}))
 		self.pool.run(
 			event=event,
-			parameters=EventParameters(**{'a': a, 'b': b}),
+			parameters=Parameters(**{'a': a, 'b': b}),
 		)
 		return
 
@@ -138,7 +136,7 @@ class SampleEventInvoker(EventInvoker):
 
 if __name__ == '__main__':
 	LOG_INIT(LOG_LEVEL_DEBUG)
-	worker = EventWorker(ThreadEventRunnerPool(), SampleEventInvoker)
+	worker = Worker(ThreadPool(), SampleEventInvoker)
 	def stop(signal, frame):
 		LOG_INFO('EventWorker stopping...')
 		worker.stop()
