@@ -1,0 +1,48 @@
+name: Create Release
+on:
+  pull_request:
+    types:
+      - closed
+jobs:
+  create-release:
+    if: |
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'master' &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{github.event.pull_request.base.ref}}
+          fetch-depth: 0
+      - name: Show base and merged branch
+        run: |
+          echo "BASE=${{github.event.pull_request.base.ref}}"
+          echo "BASE=${{github.event.pull_request.base.ref}}" >> $GITHUB_ENV
+          echo "MERGED=${{github.event.pull_request.head.ref}}"
+          echo "MERGED=${{github.event.pull_request.head.ref}}" >> $GITHUB_ENV
+      - name: Create Tag
+        run: |
+          # Check version file
+          if [ ! -f "VERSION" ]; then
+            echo "VERSION file is not found!"
+            exit 1
+          fi
+          VERSION=$(cat VERSION)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          git config user.name "${{vars.ACTION_USERNAME}}"
+          git config user.email "${{vars.ACTION_USEREMAIL}}"
+          git tag -a -f "$VERSION" -m "Release - $VERSION"
+          git push -f origin "$VERSION"
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{env.VERSION}}
+          name: "Release - ${{env.VERSION}}"
+          body_path: releases/${{env.VERSION}}.md
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+

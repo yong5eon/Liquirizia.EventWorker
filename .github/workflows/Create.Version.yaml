@@ -1,0 +1,99 @@
+name: Create Version
+on:
+  pull_request:
+    types:
+      - closed
+jobs:
+  create-version:
+    if: |
+      github.event.pull_request.merged == true && 
+      (
+        startsWith(github.event.pull_request.head.ref, 'feature/') ||
+        startsWith(github.event.pull_request.head.ref, 'bug/') ||
+        startsWith(github.event.pull_request.head.ref, 'fix/')
+      )
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{github.event.pull_request.base.ref}}
+      - name: Show base and merged branch
+        run: |
+          echo "BASE=${{github.event.pull_request.base.ref}}"
+          echo "BASE=${{github.event.pull_request.base.ref}}" >> $GITHUB_ENV
+          echo "MERGED=${{github.event.pull_request.head.ref}}"
+          echo "MERGED=${{github.event.pull_request.head.ref}}" >> $GITHUB_ENV
+      - name: Update VERSION
+        run: |
+          # Check version file
+          if [ ! -f "VERSION" ]; then
+            echo "VERSION file not found!"
+            exit 1
+          fi
+          # Load current version
+          OLD_VERSION=$(cat VERSION)
+          if ! [[ "$OLD_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "VERSION file has invalid format: $OLD_VERSION"
+            echo "0.0.0" > VERSION
+            OLD_VERSION="0.0.0"
+          fi
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$OLD_VERSION"
+          UPDATED=false
+          # Determine update logic based on branch name
+          if [[ "${{env.MERGED}}" =~ ^(bug|fix) ]]; then
+            PATCH=$((PATCH + 1))
+            UPDATED=true
+          elif [[ "${{env.MERGED}}" =~ ^(feature) ]]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0  # Reset PATCH when MINOR is incremented
+            UPDATED=true
+          else
+            echo "No version update needed for branch: ${{env.MERGED}}"
+            exit 0
+          fi
+          # Write updated version back to file
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "Updated VERSION from $OLD_VERSION to $NEW_VERSION"
+          echo "OLD_VERSION=$OLD_VERSION" >> $GITHUB_ENV
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "UPDATED=$UPDATED" >> $GITHUB_ENV
+      - name: Create Release Branch and Commit Changes
+        if: ${{env.UPDATED == 'true'}}
+        run: |
+          RELEASE_BRANCH="release/${{env.NEW_VERSION}}"
+          echo "RELEASE BRANCH : $RELEASE_BRANCH"
+          echo "MERGED         : ${{env.MERGED}}"
+          echo "OLD VERSION    : ${{env.OLD_VERSION}}"
+          echo "NEW VERSION    : ${{env.NEW_VERSION}}"
+          if [ ! -f "issues/${{env.MERGED}}.md" ]; then
+            echo "issues/${{env.MERGED}}.md file is not found"
+            exit 1
+          fi
+          git config user.name "${{vars.ACTION_USERNAME}}"
+          git config user.email "${{vars.ACTION_USEREMAIL}}"
+          git pull origin ${{env.BASE}}
+          git checkout -b $RELEASE_BRANCH
+          echo "${{env.NEW_VERSION}}" > VERSION
+          CHANGES=$(cat issues/${{env.MERGED}}.md)
+          echo "$CHANGES" > releases/${{env.NEW_VERSION}}.md
+          git add VERSION
+          git add releases/${{env.NEW_VERSION}}.md
+          git commit -m "Update VERSION from ${{env.OLD_VERSION}} to ${{env.NEW_VERSION}}"
+          git push -f origin $RELEASE_BRANCH
+          git log -1
+          git branch -vv
+      - name: Create Pull Request
+        if: ${{env.UPDATED == 'true'}}
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        run: |
+          RELEASE_BRANCH="release/${{env.NEW_VERSION}}"
+          TITLE="Release - ${{env.NEW_VERSION}}"
+          BODY=$(cat releases/${{env.NEW_VERSION}}.md)
+          BASE="${{github.event.pull_request.base.ref}}"
+          gh pr create --title "$TITLE" --body "$BODY" --head "$RELEASE_BRANCH" --base "$BASE_BRANCH"
+

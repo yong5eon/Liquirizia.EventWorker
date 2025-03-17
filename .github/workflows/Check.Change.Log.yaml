@@ -1,0 +1,34 @@
+name: Check Change Log File
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize 
+      - reopened
+jobs:
+  check-file:
+    if: |
+      startsWith(github.event.pull_request.head.ref, 'feature/') ||
+      startsWith(github.event.pull_request.head.ref, 'bug/') ||
+      startsWith(github.event.pull_request.head.ref, 'fix/')
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Check if File Exists
+        run: |
+          BRANCH_NAME="${{github.event.pull_request.head.ref}}"
+          TARGET_FILE="issues/$BRANCH_NAME.md"
+          echo "Checking if file exists: $TARGET_FILE"
+          if [ ! -f "$TARGET_FILE" ]; then
+            echo "Error: File $TARGET_FILE does not exist."
+            exit 1
+          else
+            echo "Success: File $TARGET_FILE exists."
+          fi
+

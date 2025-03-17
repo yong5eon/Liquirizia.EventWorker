@@ -55,17 +55,6 @@ target/
 __pypackages__/
 
 # Liquirizia
-.github
 .vscode
 .idea
-.old
-*.old
 tmp
-*.log
-*.LOG
-*.log.*
-*.LOG.*
-*.txt
-*.txt.*
-*.txt
-*.TXT.*
