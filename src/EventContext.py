@@ -37,10 +37,10 @@ class EventRunnerFactory(Factory):
 			completion = runner.run(*args, **kwargs)
 		except Exception as e:
 			for error in self.errors if self.errors else []:
-				error(e)
+				error(e, *args, **kwargs)
 		else:
 			for complete in self.completes if self.completes else []:
-				complete(completion)
+				complete(completion, *args, **kwargs)
 			return
 
 

@@ -30,13 +30,13 @@ from time import sleep
 
 
 class Complete(EventRunnerComplete):
-	def __call__(self, completion):
-		LOG_INFO('Complete : {}'.format(completion))
+	def __call__(self, completion, a, b):
+		LOG_INFO('Complete : a={}, b={}, completion={}'.format(a, b, completion))
 		return
 	
 class Error(EventRunnerError):
-	def __call__(self, error: BaseException):
-		LOG_ERROR('Error : {}'.format(str(error)), e=error)
+	def __call__(self, error: BaseException, a, b):
+		LOG_ERROR('Error : a={}, b={}, error={}'.format(a, b, str(error)), e=error)
 		return
 
 

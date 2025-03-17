@@ -22,7 +22,9 @@ class EventRunnerComplete(metaclass=ABCMeta):
 	@abstractmethod
 	def __call__(
 		self,
-		completion: Any
+		completion: Any,
+		*args,
+		**kwargs,
 	):
 		raise NotImplementedError('{} must be implemented __call__'.format(self.__class__.__name__))
 
@@ -33,5 +35,7 @@ class EventRunnerError(metaclass=ABCMeta):
 	def __call__(
 		self,
 		error: BaseException,
+		*args,
+		**kwargs,
 	):
 		raise NotImplementedError('{} must be implemented __call__'.format(self.__class__.__name__))
