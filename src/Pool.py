@@ -2,13 +2,13 @@
 
 from .EventRunner import (
 	EventRunner,
-	EventRunnerComplete,
-	EventRunnerError,
+	EventComplete,
+	EventError,
 )
 from .Factory import Factory
-from .EventContext import (
-	EventContext,
-	EventRunnerFactory,
+from .Context import (
+	Context,
+	EventFactory,
 )
 
 from multiprocessing import get_context
@@ -57,29 +57,31 @@ class Pool(ABC):
 		return len(self.runners)
 	
 	def run(self, event: str, parameters: Parameters = Parameters()):
-		ctx = EventContext()
-		event = ctx.context.get(event, None)
+		ctx = Context()
+		props = ctx.context.get(event, None)
 		if not event:
 			raise RuntimeError('Event not found')
 		self.add(
-			event['runner'],
-			completes=event['completes'],
-			errors=event['errors'],
+			event,
+			props['runner'],
+			completes=props['completes'],
+			errors=props['errors'],
 			parameters=parameters,
-			factory=event['factory'],
+			factory=props['factory'],
 		)
 		return
 
 	def add(
 		self,
+		event: str,
 		runner: Type[EventRunner],
-		completes: Union[EventRunnerComplete, Sequence[EventRunnerComplete]] = None,
-		errors: Union[EventRunnerError, Sequence[EventRunnerError]] = None,
+		completes: Union[EventComplete, Sequence[EventComplete]] = None,
+		errors: Union[EventError, Sequence[EventError]] = None,
 		parameters: Parameters = Parameters(),
-		factory: Type[Factory] = EventRunnerFactory,
+		factory: Type[Factory] = EventFactory,
 	):
 		self.runners.append(self.pool.apply_async(
-			factory(runner, completes=completes, errors=errors),
+			factory(event, runner, completes=completes, errors=errors),
 			args=parameters.args,
 			kwds=parameters.kwargs,
 			error_callback=None
