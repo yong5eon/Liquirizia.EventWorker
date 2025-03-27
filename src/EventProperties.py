@@ -3,12 +3,12 @@
 from .Factory import Factory
 from .EventRunner import (
 	EventRunner,
-	EventRunnerComplete,
-	EventRunnerError,
+	EventComplete,
+	EventError,
 )
-from .EventContext import (
-	EventContext,
-	EventRunnerFactory,
+from .Context import (
+	Context,
+	EventFactory,
 )
 
 from typing import Type, Sequence, Union, Any
@@ -24,9 +24,9 @@ class EventProperties(object):
 		self,
 		event: str,
 		parameters: Any = None,
-		completes: Union[EventRunnerComplete, Sequence[EventRunnerComplete]] = None,
-		errors: Union[EventRunnerError, Sequence[EventRunnerError]] = None,
-		factory: Type[Factory] = EventRunnerFactory,
+		completes: Union[EventComplete, Sequence[EventComplete]] = None,
+		errors: Union[EventError, Sequence[EventError]] = None,
+		factory: Type[Factory] = EventFactory,
 	):
 		self.event = event
 		self.parameters = parameters
@@ -40,7 +40,7 @@ class EventProperties(object):
 		return
 
 	def __call__(self, o: Type[EventRunner]):
-		ctx = EventContext()
+		ctx = Context()
 		ctx.add(
 			event=self.event,
 			runner=o,

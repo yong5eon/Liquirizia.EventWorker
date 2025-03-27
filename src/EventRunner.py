@@ -5,8 +5,8 @@ from typing import Any
 
 __all__ = (
 	'EventRunner',
-	'EventRunnerComplete',
-	'EventRunnerError',
+	'EventComplete',
+	'EventError',
 )
 
 
@@ -17,7 +17,7 @@ class EventRunner(metaclass=ABCMeta):
 		raise NotImplementedError('{} must be implemented run'.format(self.__class__.__name__))
 
 
-class EventRunnerComplete(metaclass=ABCMeta):
+class EventComplete(metaclass=ABCMeta):
 	"""Event Runner Complete Interface"""
 	@abstractmethod
 	def __call__(
@@ -29,7 +29,7 @@ class EventRunnerComplete(metaclass=ABCMeta):
 		raise NotImplementedError('{} must be implemented __call__'.format(self.__class__.__name__))
 
 
-class EventRunnerError(metaclass=ABCMeta):
+class EventError(metaclass=ABCMeta):
 	"""Event Runner Error Interface"""
 	@abstractmethod
 	def __call__(

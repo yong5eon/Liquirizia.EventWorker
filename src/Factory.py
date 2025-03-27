@@ -2,8 +2,8 @@
 
 from .EventRunner import (
 	EventRunner,
-	EventRunnerComplete,
-	EventRunnerError,
+	EventComplete,
+	EventError,
 )
 from abc import ABCMeta, abstractmethod
 from typing import Type, Union, Sequence
@@ -17,9 +17,10 @@ class Factory(metaclass=ABCMeta):
 	@abstractmethod
 	def __init__(
 		self,
+		event: str,
 		runner: Type[EventRunner],
-		completes: Union[EventRunnerComplete, Sequence[EventRunnerComplete]] = None,
-		errors: Union[EventRunnerError, Sequence[EventRunnerError]] = None,
+		completes: Union[EventComplete, Sequence[EventComplete]] = None,
+		errors: Union[EventError, Sequence[EventError]] = None,
 	):
 		raise NotImplementedError('{} must be implemented __init__'.format(self.__class__.__name__))
 	@abstractmethod

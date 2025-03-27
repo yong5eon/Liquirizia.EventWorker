@@ -4,25 +4,37 @@ from Liquirizia.Template import Singleton
 
 from .EventRunner import (
 	EventRunner,
-	EventRunnerComplete,
-	EventRunnerError,
+	EventComplete,
+	EventError,
 )
 from .Factory import Factory
 
+from uuid import uuid4
+from os import getpid
+from threading import get_ident
 from typing import Type, Sequence, Union, Any, List, Dict
 
 __all__ = (
-	'EventContext',
-	'EventRunnerFactory',
+	'Context',
+	'EventFactory',
 )
 
-class EventRunnerFactory(Factory):
+class Parameters(object):
+	def __init__(self, *args, **kwargs):
+		self.args = args
+		self.kwargs = kwargs
+		return
+
+
+class EventFactory(Factory):
 	def __init__(
 		self,
+		event: str,
 		runner: Type[EventRunner],
-		completes: Union[EventRunnerComplete, Sequence[EventRunnerComplete]] = None,
-		errors: Union[EventRunnerError, Sequence[EventRunnerError]] = None,
+		completes: Union[EventComplete, Sequence[EventComplete]] = None,
+		errors: Union[EventError, Sequence[EventError]] = None,
 	):
+		self.event = event
 		self.runner = runner
 		self.completes = completes
 		if self.completes and not isinstance(self.completes, Sequence):
@@ -32,7 +44,10 @@ class EventRunnerFactory(Factory):
 			self.errors = [self.errors]
 		return
 	def __call__(self, *args, **kwargs):
+		ctx = Context()
 		try:
+			id = '{}.{}'.format(getpid(), get_ident())
+			ctx.attach(self.event, Parameters(*args, **kwargs), id)
 			runner = self.runner()
 			completion = runner.run(*args, **kwargs)
 		except Exception as e:
@@ -41,22 +56,25 @@ class EventRunnerFactory(Factory):
 		else:
 			for complete in self.completes if self.completes else []:
 				complete(completion, *args, **kwargs)
+		finally:
+			ctx.detach(id)
 			return
 
 
-class EventContext(Singleton):
+class Context(Singleton):
 	"""Event Context Class"""
 	def __init__(self):
 		self.context = {}
+		self.concurrent = {} 
 		return
 
 	def add(
 		self,
 		event: str,
 		runner: Type[EventRunner],
-		completes: Union[EventRunnerComplete, Sequence[EventRunnerComplete]] = None,
-		errors: Union[EventRunnerError, Sequence[EventRunnerError]] = None,
-		factory: Type[Factory] = EventRunnerFactory,
+		completes: Union[EventComplete, Sequence[EventComplete]] = None,
+		errors: Union[EventError, Sequence[EventError]] = None,
+		factory: Type[Factory] = EventFactory,
 		eventParameters: Any = None,
 	):
 		if event in self.context:
@@ -75,11 +93,37 @@ class EventContext(Singleton):
 		return
 	
 	def events(self) -> List[str]:
-		return self.context.keys()
+		return [k for k in self.context.keys()]
 	
 	def parameters(self) -> Dict[str, Any]:
 		return {k: v['parameters'] for k, v in self.context.items()}
 	
 	def parameter(self, event: str) -> Any:
 		return self.context[event]['parameters']
+	
+	def attach(self, event: str, parameters: Parameters, id: str = None):
+		if not id: id = uuid4().hex
+		self.concurrent[id] = {
+			'event': event,
+			'parameters': {
+				'args': parameters.args,
+				'kwargs': parameters.kwargs,
+			}
+		}
+		return id
 
+	def detach(self, id: str):
+		if id in self.concurrent:
+			del self.concurrent[id]
+		return
+
+	def status(self):
+		return {
+			'events': {k: v['parameters'] for k, v in self.context.items()},
+			'concurrency': len(self.concurrent.items()),
+			'tasks': {k: {
+				'event': v['event'],
+				'args': v['parameters']['args'],
+				'kwargs': v['parameters']['kwargs'],
+			} for k, v in self.concurrent.items()},
+		}
