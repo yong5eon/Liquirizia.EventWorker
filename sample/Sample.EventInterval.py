@@ -13,7 +13,7 @@ from Liquirizia.EventWorker import (
 	EventComplete,
 	EventError,
 )
-from Liquirizia.EventWorker.Extends.StatusChecker import StatusChecker
+from Liquirizia.EventWorker.Tools.StatusChecker import StatusChecker
 
 from Liquirizia.Logger import (
 	LOG_INIT,

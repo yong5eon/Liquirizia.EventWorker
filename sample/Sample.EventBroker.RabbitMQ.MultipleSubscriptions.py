@@ -13,7 +13,7 @@ from Liquirizia.EventWorker import (
 	EventComplete,
 	EventError,
 )
-from Liquirizia.EventWorker.Extends.StatusChecker import StatusChecker
+from Liquirizia.EventWorker.Tools.StatusChecker import StatusChecker
 
 from Liquirizia.EventBroker import Helper
 from Liquirizia.EventBroker.Implements.RabbitMQ import (

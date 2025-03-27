@@ -8,7 +8,7 @@ from Liquirizia.EventWorker import (
 	ProcessPool,
 	Parameters,
 )
-from Liquirizia.EventWorker.Extends.StatusChecker import StatusChecker
+from Liquirizia.EventWorker.Tools.StatusChecker import StatusChecker
 from Liquirizia.EventWorker import (
 	EventRunner,
 	EventComplete,
