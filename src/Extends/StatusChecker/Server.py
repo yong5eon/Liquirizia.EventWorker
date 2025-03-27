@@ -6,16 +6,27 @@ from cgi import parse_header
 from abc import ABCMeta, abstractmethod
 from collections.abc import Sequence, Mapping
 from json import dumps
-from typing import Optional, Any
+from typing import Optional, Any, Dict, Tuple
 
 __all__ = (
-	'Stauts',
-	'StatusHandler',
+	'Request',
+	'Response',
+	'Handler',
+	'Server',
 )
 
 class Request:
 	"""Request"""
-	def __init__(self, method, uri, qs=None, body=None, format=None, charset=None, headers=None) -> None:
+	def __init__(
+		self,
+		method: str, 
+		uri: str, 
+		qs: Dict[str, str] = None,
+		body: bytes = None,
+		format: str = None,
+		charset: str = None,
+		headers: Dict[str, str]= None
+	):
 		self.method = method
 		self.uri = uri
 		self.qs = qs
@@ -28,7 +39,14 @@ class Request:
 
 class Response:
 	"""Response"""
-	def __init__(self, status, message=None, body=None, format=None, charset=None, headers=None) -> None:
+	def __init__(
+		self,
+		status: int,
+		message: str = None,
+		body: bytes = None,
+		format: str = None,
+		charset: str = None,
+		headers: Dict[str, str] = None):
 		self.status = status
 		self.message = message
 		self.body = body
@@ -41,6 +59,25 @@ class Response:
 	
 class RequestHandler(BaseHTTPRequestHandler):
 	"""Request Handler"""
+
+	def strip(self, value: str, prefix: str = '"', postfix: str = '"'):
+		value = value.strip()
+		if len(value) and prefix:
+			if value[0] == prefix: value = value[1:]
+		if len(value) and postfix:
+			if value[-1:] == postfix: value = value[:-1]
+		return value
+
+	def parse(self, value: str, sep: str = ';', paramsep: str = ',') -> Tuple[str, Dict[str, str]]:
+		ts = value.strip().split(sep, maxsplit=1)
+		val = self.strip(ts[0])
+		params = {}
+		if len(ts) > 1:
+			for p in ts[1].strip().split(paramsep):
+				ps = p.strip().split('=')
+				params[self.strip(ps[0])] = self.strip(ps[1]) if len(ps) > 1 else None
+		return val, params
+
 	def do_GET(self):
 		try:
 			url = urlparse(self.path)
@@ -49,15 +86,17 @@ class RequestHandler(BaseHTTPRequestHandler):
 			body = None
 			format = None
 			charset = None
-			if 'Content-Length' in self.headers.keys():
-				body = self.rfile.read(int(self.headers('Content-Length')))
-				if self.headers('Content-Type'):
-					args, kwargs = parse_header(self.headers('Content-Type'))
+			headers = {}
+			for k, v in self.headers.items() if self.headers else []:
+				if k == 'Content-Length':
+					body = self.rfile.read(int(self.headers('Content-Length')))
+					continue
+				if k == 'Content-Type':
+					args, kwargs = self.parse(self.headers('Content-Type'))
 					format = args[0] if args[0] else None
 					charset = kwargs['charset'] if 'charset' in kwargs.keys() else None
-			headers = {}
-			for key, value in self.headers.items():
-				headers[key] = parse_header(value)
+					continue
+				headers[k] = v
 			request = Request(
 				method=self.command,
 				uri=uri,
@@ -67,24 +106,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 				charset=charset,
 				headers=headers
 			)
-			status = self.server.handler.onStatus()
-			if status:
-				if isinstance(status, str):
-					response = Response(
-						200,
-						body=status.encode('utf-8'),
-						format='text/plain',
-						charset='utf-8',
-					)
-				else:
-					response = Response(
-						200,
-						body=dumps(status).encode('utf-8'),
-						format='text/plain',
-						charset='utf-8',
-					)
-			else:
-				response = Response(200)
+			response = self.server.handler(request)
 		except Exception as e:
 			body = str(e).encode('utf-8')
 			response = Response(
@@ -96,8 +118,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 			)
 		finally:
 			self.send_response(response.status, response.message)
-			for keyword, value in response.headers if response.headers else []:
-				self.send_header(keyword, value)
+			for k, v in response.headers.items() if response.headers else []:
+				self.send_header(k, v)
 			if response.body:
 				self.send_header('Content-Length', response.size)
 				if response.format:
@@ -110,24 +132,20 @@ class RequestHandler(BaseHTTPRequestHandler):
 			if response.body:
 				self.wfile.write(response.body)
 		return
-	
+
 	def log_request(self, code, size=None):
-		self.server.handler.onResponse(code, size)
-		return
-
-
-class StatusHandler(metaclass=ABCMeta):
-	@abstractmethod
-	def onStatus(self) -> Optional[Any]:
 		pass
 
-	@abstractmethod
-	def onResponse(self, code, size=None):
-		pass
 
-class Status(object): 
+class Handler(metaclass=ABCMeta):
+	@abstractmethod
+	def __call__(self, request: Request) -> Response:
+		raise NotImplementedError('{} must be implemented __call__ method'.format(self.__class__.__name__))
+
+
+class Server(object): 
 	"""Status for Worker with HTTP Server"""
-	def __init__(self, handler: StatusHandler, port : int = 9999, host : str = '127.0.0.1') -> None:
+	def __init__(self, handler: Handler, port : int = 9999, host : str = '127.0.0.1') -> None:
 		self.httpd = HTTPServer((host, port), RequestHandler)
 		self.httpd.handler = handler
 		return
