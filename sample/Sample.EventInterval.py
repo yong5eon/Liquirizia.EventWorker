@@ -6,12 +6,12 @@ from Liquirizia.EventWorker import (
 	Pool,
 	ThreadPool,
 	ProcessPool,
-	Parameters,
-	Context,
 	EventProperties,
+	EventParameters,
 	EventRunner,
 	EventComplete,
 	EventError,
+	EventContext,
 )
 from Liquirizia.EventWorker.Tools.StatusChecker import StatusChecker
 
@@ -30,79 +30,6 @@ from random import randint
 from time import sleep
 
 
-class Complete(EventComplete):
-	def __call__(self, completion, a, b):
-		LOG_INFO('Complete : a={}, b={}, completion={}'.format(a, b, completion))
-		return
-	
-class Error(EventError):
-	def __call__(self, error: BaseException, a, b):
-		LOG_ERROR('Error : a={}, b={}, error={}'.format(a, b, str(error)), e=error)
-		return
-
-
-@EventProperties(
-	event='+',
-	parameters=2,
-	completes=Complete(),
-	errors=Error(),
-)
-class Add(EventRunner):
-	def run(self, a: int , b: int):
-		LOG_DEBUG('Run : {} + {}'.format(a, b))
-		sleep(randint(1, 5))
-		return a + b
-
-@EventProperties(
-	event='-',
-	parameters=3,
-	completes=Complete(),
-	errors=Error(),
-)
-class Sub(EventRunner):
-	def run(self, a: int , b: int):
-		LOG_DEBUG('Run : {} - {}'.format(a, b))
-		sleep(randint(1, 5))
-		return a - b
-
-@EventProperties(
-	event='*',
-	parameters=4,
-	completes=Complete(),
-	errors=Error(),
-)
-class Mul(EventRunner):
-	def run(self, a: int , b: int):
-		LOG_DEBUG('Run : {} * {}'.format(a, b))
-		sleep(randint(1, 5))
-		return a * b
-
-@EventProperties(
-	event='/',
-	parameters=5,
-	completes=Complete(),
-	errors=Error(),
-)
-class Div(EventRunner):
-	def run(self, a: int , b: int):
-		LOG_DEBUG('Run : {} / {}'.format(a, b))
-		sleep(randint(1, 5))
-		return a / b
-
-
-@EventProperties(
-	event='%',
-	parameters=6,
-	completes=Complete(),
-	errors=Error(),
-)
-class Mod(EventRunner):
-	def run(self, a: int , b: int):
-		LOG_DEBUG('Run : {} % {}'.format(a, b))
-		sleep(randint(1, 5))
-		return a % b
-
-
 class SampleEventInvoker(Invoker):
 	def __init__(self, pool: Pool):
 		self.event = get_context().Manager().Event()
@@ -115,13 +42,13 @@ class SampleEventInvoker(Invoker):
 		LOG_INFO('Event : type={}, {}'.format(a, {'a': a, 'b': b}))
 		self.pool.run(
 			event=event,
-			parameters=Parameters(**{'a': a, 'b': b}),
+			parameters=EventParameters(**{'a': a, 'b': b}),
 		)
 		return
 
 	def run(self):
-		ctx = Context()	
-		for event, interval in ctx.parameters().items():
+		ctx = EventContext()	
+		for event, interval in ctx.events().items():
 			LOG_DEBUG('Create event : event={}, interval={}'.format(event, interval))
 			self.sched.add_job(
 				self.invoke,
@@ -140,8 +67,81 @@ class SampleEventInvoker(Invoker):
 		return
 
 
+class Complete(EventComplete):
+	def __call__(self, parameters: EventParameters, completion):
+		LOG_INFO('Complete : parameters={}, completion={}'.format(parameters, completion))
+		return
+	
+class Error(EventError):
+	def __call__(self, parameters: EventParameters, error: BaseException):
+		LOG_ERROR('Error : parameters={}, error={}'.format(parameters, str(error)), e=error)
+		return
+
+
+@EventProperties(
+	event='+',
+	properties=2,
+	completes=Complete(),
+	errors=Error(),
+)
+class Add(EventRunner):
+	def run(self, a: int , b: int):
+		LOG_DEBUG('Run : {} + {}'.format(a, b))
+		sleep(randint(1, 5))
+		return a + b
+
+@EventProperties(
+	event='-',
+	properties=3,
+	completes=Complete(),
+	errors=Error(),
+)
+class Sub(EventRunner):
+	def run(self, a: int , b: int):
+		LOG_DEBUG('Run : {} - {}'.format(a, b))
+		sleep(randint(1, 5))
+		return a - b
+
+@EventProperties(
+	event='*',
+	properties=4,
+	completes=Complete(),
+	errors=Error(),
+)
+class Mul(EventRunner):
+	def run(self, a: int , b: int):
+		LOG_DEBUG('Run : {} * {}'.format(a, b))
+		sleep(randint(1, 5))
+		return a * b
+
+@EventProperties(
+	event='/',
+	properties=5,
+	completes=Complete(),
+	errors=Error(),
+)
+class Div(EventRunner):
+	def run(self, a: int , b: int):
+		LOG_DEBUG('Run : {} / {}'.format(a, b))
+		sleep(randint(1, 5))
+		return a / b
+
+
+@EventProperties(
+	event='%',
+	properties=6,
+	completes=Complete(),
+	errors=Error(),
+)
+class Mod(EventRunner):
+	def run(self, a: int , b: int):
+		LOG_DEBUG('Run : {} % {}'.format(a, b))
+		sleep(randint(1, 5))
+		return a % b
+
+
 if __name__ == '__main__':
-	LOG_INIT(LOG_LEVEL_DEBUG)
+	LOG_INIT(LOG_LEVEL_DEBUG, name='Sample.EventInterval')
 	sc = StatusChecker()
 	worker = Worker(ThreadPool(), SampleEventInvoker)
 	def stop(signal, frame):

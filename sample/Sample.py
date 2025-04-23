@@ -6,14 +6,16 @@ from Liquirizia.EventWorker import (
 	Pool,
 	ThreadPool,
 	ProcessPool,
-	Parameters,
 )
 from Liquirizia.EventWorker.Tools.StatusChecker import StatusChecker
 from Liquirizia.EventWorker import (
 	EventRunner,
+	EventParameters,
 	EventComplete,
 	EventError,
 	EventProperties,
+	EventContext,
+	Factory,
 )
 
 from Liquirizia.Logger import (
@@ -30,14 +32,38 @@ from random import randint
 from time import sleep
 
 
+class SampleInvoker(Invoker):
+	def __init__(self, pool: Pool):
+		self.event = get_context().Manager().Event()
+		self.pool = pool
+		self.context = EventContext()
+		return
+	def run(self):
+		EVENT = ['+', '-', '*', '/', '%']
+		while not self.event.is_set():
+			event = EVENT[randint(0, 4)]
+			a = randint(0, 9)
+			b = randint(0, 9)
+			LOG_INFO('Event : type={}, {}'.format(event, {'a': a, 'b': b}))
+			self.pool.run(
+				event=event,
+				parameters=EventParameters(**{'a': a, 'b': b}),
+			)
+			sleep(1)
+		return
+	def stop(self):
+		self.event.set()
+		return
+
+
 class Complete(EventComplete):
-	def __call__(self, completion, a, b):
-		LOG_INFO('Complete : a={}, b={}, completion={}'.format(a, b, completion))
+	def __call__(self, parameters: EventParameters, completion):
+		LOG_INFO('Complete : parameters={}, completion={}'.format(parameters, completion))
 		return
 	
 class Error(EventError):
-	def __call__(self, error: BaseException, a, b):
-		LOG_ERROR('Error : a={}, b={}, error={}'.format(a, b, str(error)), e=error)
+	def __call__(self, parameters: EventParameters, error: BaseException):
+		LOG_ERROR('Error : parameters={}, error={}'.format(parameters, str(error)), e=error)
 		return
 
 
@@ -96,29 +122,6 @@ class Mod(EventRunner):
 		LOG_DEBUG('Run : {} % {}'.format(a, b))
 		sleep(randint(1, 5))
 		return a % b
-
-
-class SampleInvoker(Invoker):
-	def __init__(self, pool: Pool):
-		self.event = get_context().Manager().Event()
-		self.pool = pool
-		return
-	def run(self):
-		EVENT = ['+', '-', '*', '/', '%']
-		while not self.event.is_set():
-			event = EVENT[randint(0, 4)]
-			a = randint(0, 9)
-			b = randint(0, 9)
-			LOG_INFO('Event : type={}, {}'.format(a, {'a': a, 'b': b}))
-			self.pool.run(
-				event=event,
-				parameters=Parameters(**{'a': a, 'b': b}),
-			)
-			sleep(1)
-		return
-	def stop(self):
-		self.event.set()
-		return
 
 
 if __name__ == '__main__':

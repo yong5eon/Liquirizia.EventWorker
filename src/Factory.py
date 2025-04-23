@@ -2,6 +2,7 @@
 
 from .EventRunner import (
 	EventRunner,
+	EventParameters,
 	EventComplete,
 	EventError,
 )

@@ -6,7 +6,7 @@ from .Server import (
 	Response,
 	Handler,
 )
-from ...Context import Context
+from ...EventContext import EventContext
 
 from threading import Thread
 from abc import ABCMeta, abstractmethod
@@ -18,7 +18,7 @@ __all__ = (
 
 class JavaScriptObjectNotationStatusHandler(Handler):
 	def __call__(self, request: Request) -> Response:
-		ctx = Context()
+		ctx = EventContext()
 		buffer = dumps(ctx.status(), ensure_ascii=False).encode('utf-8')
 		return Response(
 			status=200,

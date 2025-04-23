@@ -7,19 +7,20 @@
 ```python
 from Liquirizia.EventWorker import (
   EventProperties,
+	EventParameters,
   EventRunner,
   EventComplete,
   EventError,
 )
 
 class SampleComplete(EventRunnerComplete):
-  def __call__(self, completion, *args, **kwargs):
+  def __call__(self, parameters: EventParameters, completion: Any):
     # 완료 처리
     ...
     return
   
 class SampleError(EventRunnerError):
-  def __call__(self, error: BaseException, *args, **kwargs):
+  def __call__(self, parameters: EventParameters, error: BaseException):
     # 오류 처리
     ...
     return
@@ -31,7 +32,11 @@ class SampleError(EventRunnerError):
   errors=SampleError(),
 )
 class SampleRunner(EventRunner):
-  def run(self, *args, **kwargs):
+	def __init__(self, *args):
+		# 이벤트 초기화
+		...
+		return
+  def run(self, **kwargs):
     # 이벤트 처리
     ...
     return ... # 완료 처리를 위한 값 리턴
@@ -84,5 +89,5 @@ worker.run()
 - [이벤트 워커](sample/Sample.py)
 - [이벤트 브로커로 부터 컨슈밍을 하여 처리 하는 이벤트 워커](sample/Sample.EventBroker.RabbitMQ.py)
 - [다중 이벤트 브로커로 부터 컨슈밍을 하여 처리 하는 이벤트 워커](sample/Sample.EventBroker.RabbitMQ.MultipleSubscriptions.py)
-- [인터발 방식의 이번트 워커](sample/Sample.EventInterval.py)
-- [시간 스케줄 방식의 이벤트 워커](sample/Sample.EventScheduler.py)
+- [인터벌 방식의 이번트 워커](sample/Sample.EventInterval.py)
+- [스케줄 방식의 이벤트 워커](sample/Sample.EventScheduler.py)
