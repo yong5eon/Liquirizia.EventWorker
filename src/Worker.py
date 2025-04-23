@@ -2,6 +2,7 @@
 
 from .Pool import Pool
 from .Invoker import Invoker
+from .Utils import Loader
 
 from typing import Type
 
@@ -24,3 +25,8 @@ class Worker(object):
 	def stop(self):
 		self.invoker.stop()
 		return
+	
+	def load(self, mod: str = None, path: str = None, ext: str = 'py'):
+		"""Load module"""
+		load = Loader()
+		return load(mod=mod, path=path, ext=ext)

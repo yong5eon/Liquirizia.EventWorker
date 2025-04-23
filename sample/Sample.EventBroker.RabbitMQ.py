@@ -6,8 +6,8 @@ from Liquirizia.EventWorker import (
 	Pool,
 	ThreadPool,
 	ProcessPool,
-	Parameters,
 	EventProperties,
+	EventParameters,
 	EventRunner,
 	EventComplete,
 	EventError,
@@ -21,6 +21,7 @@ from Liquirizia.EventBroker.Implements.RabbitMQ import (
 	Consumer,
 	Queue,
 	EventHandler,
+	Event,
 ) 
 
 from Liquirizia.Logger import (
@@ -36,83 +37,15 @@ from random import randint
 from time import sleep
 
 
-class Complete(EventComplete):
-	def __call__(self, completion, a, b):
-		LOG_INFO('Complete : a={}, b={}, completion={}'.format(a, b, completion))
-		return
-	
-class Error(EventError):
-	def __call__(self, error: BaseException, a, b):
-		LOG_ERROR('Error : a={}, b={}, error={}'.format(a, b, str(error)), e=error)
-		return
-
-
-@EventProperties(
-	event='+',
-	completes=Complete(),
-	errors=Error(),
-)
-class Add(EventRunner):
-	def run(self, a: int , b: int):
-		LOG_DEBUG('Run : {} + {}'.format(a, b))
-		sleep(randint(1, 10))
-		return a + b
-
-@EventProperties(
-	event='-',
-	completes=Complete(),
-	errors=Error(),
-)
-class Sub(EventRunner):
-	def run(self, a: int , b: int):
-		LOG_DEBUG('Run : {} - {}'.format(a, b))
-		sleep(randint(1, 10))
-		return a - b
-
-@EventProperties(
-	event='*',
-	completes=Complete(),
-	errors=Error(),
-)
-class Mul(EventRunner):
-	def run(self, a: int , b: int):
-		LOG_DEBUG('Run : {} * {}'.format(a, b))
-		sleep(randint(1, 10))
-		return a * b
-
-@EventProperties(
-	event='/',
-	completes=Complete(),
-	errors=Error(),
-)
-class Div(EventRunner):
-	def run(self, a: int , b: int):
-		LOG_DEBUG('Run : {} / {}'.format(a, b))
-		sleep(randint(1, 10))
-		return a / b
-
-
-@EventProperties(
-	event='%',
-	completes=Complete(),
-	errors=Error(),
-)
-class Mod(EventRunner):
-	def run(self, a: int , b: int):
-		LOG_DEBUG('Run : {} % {}'.format(a, b))
-		sleep(randint(1, 10))
-		return a % b
-
-
 class SampleEventHandler(EventHandler):
 	def __init__(self, pool: Pool):
 		self.pool = pool
 		return
-	def __call__(self, event):
-		LOG_INFO('Event : type={}, {}'.format(event.type, event.body))
+	def __call__(self, event: Event):
+		LOG_INFO('Event : type={}, headers={}, {}'.format(event.type, event.headers(), event.body))
 		self.pool.run(
 			event=event.type,
-			parameters=Parameters(**event.body)
+			parameters=EventParameters(event.header('c'), **event.body)
 		)
 		event.ack()
 		return
@@ -136,9 +69,92 @@ class SampleConsumer(Invoker):
 		return
 
 
+class Complete(EventComplete):
+	def __call__(self, parameters: EventParameters, completion):
+		LOG_INFO('Complete : parameters={}, completion={}'.format(parameters, completion))
+		return
+	
+class Error(EventError):
+	def __call__(self, parameters: EventParameters, error: BaseException):
+		LOG_ERROR('Error : parameters={}, error={}'.format(parameters, str(error)), e=error)
+		return
+
+
+@EventProperties(
+	event='+',
+	completes=Complete(),
+	errors=Error(),
+)
+class Add(EventRunner):
+	def __init__(self, c):
+		self.c = c
+		return
+	def run(self, a: int , b: int):
+		LOG_DEBUG('Run : {} + {} + {}'.format(a, b, self.c))
+		sleep(randint(1, 10))
+		return a + b + self.c
+
+@EventProperties(
+	event='-',
+	completes=Complete(),
+	errors=Error(),
+)
+class Sub(EventRunner):
+	def __init__(self, c):
+		self.c = c
+		return
+	def run(self, a: int , b: int):
+		LOG_DEBUG('Run : {} - {} - {}'.format(a, b, self.c))
+		sleep(randint(1, 10))
+		return a - b - self.c
+
+@EventProperties(
+	event='*',
+	completes=Complete(),
+	errors=Error(),
+)
+class Mul(EventRunner):
+	def __init__(self, c):
+		self.c = c
+		return
+	def run(self, a: int , b: int):
+		LOG_DEBUG('Run : {} * {} * {}'.format(a, b, self.c))
+		sleep(randint(1, 10))
+		return a * b * self.c
+
+@EventProperties(
+	event='/',
+	completes=Complete(),
+	errors=Error(),
+)
+class Div(EventRunner):
+	def __init__(self, c):
+		self.c = c
+		return
+	def run(self, a: int , b: int):
+		LOG_DEBUG('Run : {} / {} / {}'.format(a, b, self.c))
+		sleep(randint(1, 10))
+		return a / b / self.c
+
+
+@EventProperties(
+	event='%',
+	completes=Complete(),
+	errors=Error(),
+)
+class Mod(EventRunner):
+	def __init__(self, c):
+		self.c = c
+		return
+	def run(self, a: int , b: int):
+		LOG_DEBUG('Run : {} % {} % {}'.format(a, b, self.c))
+		sleep(randint(1, 10))
+		return a % b % self.c
+
+
 if __name__ == '__main__':
 
-	LOG_INIT(LOG_LEVEL_DEBUG)
+	LOG_INIT(LOG_LEVEL_DEBUG, name='Sample.EventBroker.RabbitMQ')
 
 	Helper.Set(
 		'Sample',
@@ -160,7 +176,8 @@ if __name__ == '__main__':
 		event = EVENT[randint(0, 4)]
 		a = randint(0, 9)
 		b = randint(0, 9)
-		queue.send({'a': a, 'b': b}, event=event)
+		c = randint(0, 9)
+		queue.send({'a': a, 'b': b}, event=event, headers={'c': c})
 
 	sc = StatusChecker()
 	worker = Worker(ThreadPool(), SampleConsumer)

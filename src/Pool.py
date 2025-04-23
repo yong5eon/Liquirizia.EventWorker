@@ -2,13 +2,13 @@
 
 from .EventRunner import (
 	EventRunner,
+	EventParameters,
 	EventComplete,
 	EventError,
 )
-from .Factory import Factory
-from .Context import (
+from .EventContext import (
+	EventContext,
 	Context,
-	EventFactory,
 )
 
 from multiprocessing import get_context
@@ -27,18 +27,11 @@ __all__ = (
 )
 
 
-class Parameters(object):
-	def __init__(self, *args, **kwargs):
-		self.args = args
-		self.kwargs = kwargs
-		return
-
-
 class Pool(ABC):
 	"""EventRunner Pool Abstract Class"""
 	def __init__(self, pool: Union[PyProcessPool, PyThreadPool]):
 		self.pool = pool
-		self.runners = []
+		self.runners = {}
 		return
 
 	def __del__(self):
@@ -56,41 +49,27 @@ class Pool(ABC):
 	def __len__(self):
 		return len(self.runners)
 	
-	def run(self, event: str, parameters: Parameters = Parameters()):
-		ctx = Context()
-		props = ctx.context.get(event, None)
-		if not event:
-			raise RuntimeError('Event not found')
-		self.add(
-			event,
-			props['runner'],
-			completes=props['completes'],
-			errors=props['errors'],
-			parameters=parameters,
-			factory=props['factory'],
-		)
-		return
-
-	def add(
+	def run(
 		self,
 		event: str,
-		runner: Type[EventRunner],
-		completes: Union[EventComplete, Sequence[EventComplete]] = None,
-		errors: Union[EventError, Sequence[EventError]] = None,
-		parameters: Parameters = Parameters(),
-		factory: Type[Factory] = EventFactory,
+		parameters: EventParameters = EventParameters(),
 	):
-		self.runners.append(self.pool.apply_async(
-			factory(event, runner, completes=completes, errors=errors),
+		ec = EventContext()
+		context: Context = ec.get(event)
+		if not context:
+			return
+		task = self.pool.apply_async(
+			context.factory(event, context.runner, completes=context.completes, errors=context.errors),
 			args=parameters.args,
 			kwds=parameters.kwargs,
 			error_callback=None
-		))
-		return
+		)
+		self.runners[id(task)] = task
+		return id(task)
 	
 	def waits(self, timeout=None):
-		for runner in self.runners:
-			runner.wait(timeout)
+		for id, task in self.runners.items():
+			task.wait(timeout)
 		return
 
 	def stop(self):
