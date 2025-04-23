@@ -76,7 +76,7 @@ class Complete(EventComplete):
 	
 class Error(EventError):
 	def __call__(self, parameters: EventParameters, error: BaseException):
-		LOG_ERROR('Error : a={}, b={}, error={}'.format(parameters, str(error)), e=error)
+		LOG_ERROR('Error : parameters={}, error={}'.format(parameters, str(error)), e=error)
 		return
 
 
