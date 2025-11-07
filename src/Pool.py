@@ -36,6 +36,7 @@ class Pool(ABC):
 		self.runners = {}
 		self.max = max
 		self.lock = Lock()
+		self.counter = 0  # monotonically increasing task id
 		return
 
 	def __del__(self):
@@ -59,13 +60,15 @@ class Pool(ABC):
 		context: Context = ec.get(event)
 		if not context:
 			return
-		# We'll capture this in callbacks; it will be set right after apply_async returns
-		tid = None
+		# Pre-allocate a unique id to eliminate race between ultra-fast task completion and id assignment
+		with self.lock:
+			self.counter += 1
+			tid = self.counter
+			# Placeholder before async starts (filled with ApplyResult below)
+			self.runners[tid] = None
 
 		def cleanup(_: Any = None):
-			# Remove the task from runners when done or errored
-			if tid is None:
-				return
+			# Remove metadata when done (success or error)
 			with self.lock:
 				self.runners.pop(tid, None)
 			return
@@ -77,16 +80,17 @@ class Pool(ABC):
 			callback=cleanup,  # on success
 			error_callback=cleanup,  # on error
 		)
-		# Assign the tid after ApplyResult is created; callbacks will see the updated value
-		tid = id(task)
+		# Fill in the actual task object if it hasn't already been cleaned up by an extremely fast completion
 		with self.lock:
-			self.runners[tid] = task
+			if tid in self.runners:
+				self.runners[tid] = task
 		return tid
 	
 	def waits(self, timeout=None):
 		# Iterate over a snapshot to avoid dict-size-change errors from callbacks
 		for task in list(self.runners.values()):
-			task.wait(timeout)
+			if task is not None:
+				task.wait(timeout)
 		return
 
 	def stop(self):
@@ -112,12 +116,8 @@ class Pool(ABC):
 	def count(self):
 		"""
 		Returns the number of currently running tasks.
-		As a side effect, this method removes completed tasks from the internal runners dictionary.
 		"""
 		with self.lock:
-			completed = [tid for tid, task in self.runners.items() if task.ready()]
-			for tid in completed:
-				del self.runners[tid]
 			return len(self.runners)
 
 
