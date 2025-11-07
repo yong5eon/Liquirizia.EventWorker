@@ -29,9 +29,10 @@ __all__ = (
 
 class Pool(ABC):
 	"""EventRunner Pool Abstract Class"""
-	def __init__(self, pool: Union[PyProcessPool, PyThreadPool]):
+	def __init__(self, pool: Union[PyProcessPool, PyThreadPool], max: int = None):
 		self.pool = pool
 		self.runners = {}
+		self.max = max
 		return
 
 	def __del__(self):
@@ -46,9 +47,6 @@ class Pool(ABC):
 				pass
 		return
 
-	def __len__(self):
-		return len(self.runners)
-	
 	def run(
 		self,
 		event: str,
@@ -68,7 +66,7 @@ class Pool(ABC):
 		return id(task)
 	
 	def waits(self, timeout=None):
-		for id, task in self.runners.items():
+		for _, task in self.runners.items():
 			task.wait(timeout)
 		return
 
@@ -82,16 +80,22 @@ class Pool(ABC):
 		self.pool.join()
 		return
 
+	def size(self):
+		return self.max
+	
+	def count(self):
+		return len(self.runners)
+
 
 class ThreadPool(Pool):
 	"""EventRunner ThreadPool Class"""
 	def __init__(self, max: int = None):
-		super().__init__(PyThreadPool(max))
+		super().__init__(PyThreadPool(max), max=max)
 		return
 
 
 class ProcessPool(Pool):
 	"""EventRunner ProcessPool Class"""
 	def __init__(self, max: int = None):
-		super().__init__(pool=PyProcessPool(max))
+		super().__init__(pool=PyProcessPool(max), max=max)
 		return	
