@@ -100,6 +100,13 @@ class Pool(ABC):
 		return
 
 	def size(self):
+		"""
+		Returns the maximum pool size.
+
+		Returns:
+			int or None: The maximum number of concurrent tasks allowed in the pool,
+			or None if no maximum was specified.
+		"""
 		return self.max
 	
 	def count(self):
