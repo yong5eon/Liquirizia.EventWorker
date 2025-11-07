@@ -15,9 +15,11 @@ from multiprocessing import get_context
 from multiprocessing.pool import (
 	Pool as PyProcessPool,
 	ThreadPool as PyThreadPool,
+	ApplyResult,
 )
 from abc import ABC, ABCMeta, abstractmethod
 from typing import Type, Union, Sequence, Mapping, Dict, Any
+from threading import Lock
 
 __all__ = (
 	'Parameters',
@@ -33,6 +35,7 @@ class Pool(ABC):
 		self.pool = pool
 		self.runners = {}
 		self.max = max
+		self.lock = Lock()
 		return
 
 	def __del__(self):
@@ -56,17 +59,33 @@ class Pool(ABC):
 		context: Context = ec.get(event)
 		if not context:
 			return
-		task = self.pool.apply_async(
+		# We'll capture this in callbacks; it will be set right after apply_async returns
+		tid = None
+
+		def cleanup(_: Any = None):
+			# Remove the task from runners when done or errored
+			if tid is None:
+				return
+			with self.lock:
+				self.runners.pop(tid, None)
+			return
+
+		task: ApplyResult = self.pool.apply_async(
 			context.factory(event, context.runner, completes=context.completes, errors=context.errors),
 			args=parameters.args,
 			kwds=parameters.kwargs,
-			error_callback=None
+			callback=cleanup,  # on success
+			error_callback=cleanup,  # on error
 		)
-		self.runners[id(task)] = task
-		return id(task)
+		# Assign the tid after ApplyResult is created; callbacks will see the updated value
+		tid = id(task)
+		with self.lock:
+			self.runners[tid] = task
+		return tid
 	
 	def waits(self, timeout=None):
-		for _, task in self.runners.items():
+		# Iterate over a snapshot to avoid dict-size-change errors from callbacks
+		for task in list(self.runners.values()):
 			task.wait(timeout)
 		return
 
@@ -84,7 +103,12 @@ class Pool(ABC):
 		return self.max
 	
 	def count(self):
-		return len(self.runners)
+		# Remove completed tasks from self.runners
+		with self.lock:
+			completed = [tid for tid, task in self.runners.items() if task.ready()]
+			for tid in completed:
+				del self.runners[tid]
+			return len(self.runners)
 
 
 class ThreadPool(Pool):
