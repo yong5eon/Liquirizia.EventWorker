@@ -103,7 +103,10 @@ class Pool(ABC):
 		return self.max
 	
 	def count(self):
-		# Remove completed tasks from self.runners
+		"""
+		Returns the number of currently running tasks.
+		As a side effect, this method removes completed tasks from the internal runners dictionary.
+		"""
 		with self.lock:
 			completed = [tid for tid, task in self.runners.items() if task.ready()]
 			for tid in completed:
