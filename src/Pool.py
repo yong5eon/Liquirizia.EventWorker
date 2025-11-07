@@ -118,7 +118,7 @@ class Pool(ABC):
 		Returns the number of currently running tasks.
 		"""
 		with self.lock:
-			return len(self.runners)
+			return sum(1 for task in self.runners.values() if task is not None)
 
 
 class ThreadPool(Pool):
