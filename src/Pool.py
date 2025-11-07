@@ -15,9 +15,11 @@ from multiprocessing import get_context
 from multiprocessing.pool import (
 	Pool as PyProcessPool,
 	ThreadPool as PyThreadPool,
+	ApplyResult,
 )
 from abc import ABC, ABCMeta, abstractmethod
 from typing import Type, Union, Sequence, Mapping, Dict, Any
+from threading import Lock
 
 __all__ = (
 	'Parameters',
@@ -29,9 +31,12 @@ __all__ = (
 
 class Pool(ABC):
 	"""EventRunner Pool Abstract Class"""
-	def __init__(self, pool: Union[PyProcessPool, PyThreadPool]):
+	def __init__(self, pool: Union[PyProcessPool, PyThreadPool], max: int = None):
 		self.pool = pool
 		self.runners = {}
+		self.max = max
+		self.lock = Lock()
+		self.counter = 0  # monotonically increasing task id
 		return
 
 	def __del__(self):
@@ -46,9 +51,6 @@ class Pool(ABC):
 				pass
 		return
 
-	def __len__(self):
-		return len(self.runners)
-	
 	def run(
 		self,
 		event: str,
@@ -58,18 +60,37 @@ class Pool(ABC):
 		context: Context = ec.get(event)
 		if not context:
 			return
-		task = self.pool.apply_async(
+		# Pre-allocate a unique id to eliminate race between ultra-fast task completion and id assignment
+		with self.lock:
+			self.counter += 1
+			tid = self.counter
+			# Placeholder before async starts (filled with ApplyResult below)
+			self.runners[tid] = None
+
+		def cleanup(_: Any = None):
+			# Remove metadata when done (success or error)
+			with self.lock:
+				self.runners.pop(tid, None)
+			return
+
+		task: ApplyResult = self.pool.apply_async(
 			context.factory(event, context.runner, completes=context.completes, errors=context.errors),
 			args=parameters.args,
 			kwds=parameters.kwargs,
-			error_callback=None
+			callback=cleanup,  # on success
+			error_callback=cleanup,  # on error
 		)
-		self.runners[id(task)] = task
-		return id(task)
+		# Fill in the actual task object if it hasn't already been cleaned up by an extremely fast completion
+		with self.lock:
+			if tid in self.runners:
+				self.runners[tid] = task
+		return tid
 	
 	def waits(self, timeout=None):
-		for id, task in self.runners.items():
-			task.wait(timeout)
+		# Iterate over a snapshot to avoid dict-size-change errors from callbacks
+		for task in list(self.runners.values()):
+			if task is not None:
+				task.wait(timeout)
 		return
 
 	def stop(self):
@@ -82,16 +103,33 @@ class Pool(ABC):
 		self.pool.join()
 		return
 
+	def size(self):
+		"""
+		Returns the maximum pool size.
+
+		Returns:
+			int or None: The maximum number of concurrent tasks allowed in the pool,
+			or None if no maximum was specified.
+		"""
+		return self.max
+	
+	def count(self):
+		"""
+		Returns the number of currently running tasks.
+		"""
+		with self.lock:
+			return sum(1 for task in self.runners.values() if task is not None)
+
 
 class ThreadPool(Pool):
 	"""EventRunner ThreadPool Class"""
 	def __init__(self, max: int = None):
-		super().__init__(PyThreadPool(max))
+		super().__init__(PyThreadPool(max), max=max)
 		return
 
 
 class ProcessPool(Pool):
 	"""EventRunner ProcessPool Class"""
 	def __init__(self, max: int = None):
-		super().__init__(pool=PyProcessPool(max))
+		super().__init__(pool=PyProcessPool(max), max=max)
 		return	

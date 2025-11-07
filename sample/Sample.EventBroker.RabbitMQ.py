@@ -27,8 +27,9 @@ from Liquirizia.EventBroker.Implements.RabbitMQ import (
 from Liquirizia.Logger import (
 	LOG_INIT,
 	LOG_LEVEL_DEBUG,
-	LOG_INFO,
 	LOG_ERROR,
+	LOG_WARN,
+	LOG_INFO,
 	LOG_DEBUG,
 )
 
@@ -42,7 +43,11 @@ class SampleEventHandler(EventHandler):
 		self.pool = pool
 		return
 	def __call__(self, event: Event):
-		LOG_INFO('Event : type={}, headers={}, {}'.format(event.type, event.headers(), event.body))
+		if self.pool.count() + 1 > self.pool.size():
+			# LOG_WARN('Pool full, re-queue event...')
+			event.nack()
+			return
+		LOG_INFO('EVENT : type={}, headers={}, {}'.format(event.type, event.headers(), event.body))
 		self.pool.run(
 			event=event.type,
 			parameters=EventParameters(event.header('c'), **event.body)
@@ -180,7 +185,7 @@ if __name__ == '__main__':
 		queue.send({'a': a, 'b': b}, event=event, headers={'c': c})
 
 	sc = StatusChecker()
-	worker = Worker(ThreadPool(), SampleConsumer)
+	worker = Worker(ThreadPool(10), SampleConsumer)
 	def stop(signal, frame):
 		LOG_INFO('EventWorker stopping...')
 		worker.stop()
