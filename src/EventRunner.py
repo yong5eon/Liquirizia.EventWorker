@@ -6,6 +6,7 @@ from typing import Any
 __all__ = (
 	'EventRunner',
 	'EventParameters',
+	'EventInit',
 	'EventComplete',
 	'EventError',
 )
@@ -28,6 +29,13 @@ class EventRunner(ABC):
 	@abstractmethod
 	def run(self, **kwargs):
 		raise NotImplementedError('{} must be implemented run'.format(self.__class__.__name__))
+	
+
+class EventSetup(metaclass=ABCMeta):
+	"""Event Runner Setup Interface"""
+	@abstractmethod
+	def __call__(self, parameters: EventParameters):
+		raise NotImplementedError('{} must be implemented __call__'.format(self.__class__.__name__))
 
 
 class EventComplete(metaclass=ABCMeta):

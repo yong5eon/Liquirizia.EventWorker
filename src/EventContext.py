@@ -6,6 +6,7 @@ from .Factory import Factory
 from .EventRunner import (
 	EventRunner,
 	EventParameters,
+	EventSetup,
 	EventComplete,
 	EventError,
 )
@@ -24,12 +25,16 @@ class Context(object):
 		factory: Type[Factory],
 		runner: Type[EventRunner],
 		properties: Any = None,
+		setups: Union[EventSetup, Sequence[EventSetup]] = None,
 		completes: Union[EventComplete, Sequence[EventComplete]] = None,
 		errors: Union[EventError, Sequence[EventError]] = None,
 	):
 		self.factory = factory
 		self.runner = runner
 		self.properties = properties
+		self.setups = setups
+		if self.setups and not isinstance(self.setups, Sequence):
+			self.setups = [self.setups]
 		self.completes = completes
 		if self.completes and not isinstance(self.completes, Sequence):
 			self.completes = [self.completes]
@@ -43,7 +48,6 @@ class EventContext(Singleton):
 	"""Event Context Class"""
 	def __init__(self):
 		self.contexts = {}
-		self.tasks = {} 
 		return
 
 	def add(
@@ -52,11 +56,14 @@ class EventContext(Singleton):
 		event: str,
 		runner: Type[EventRunner],
 		properties: Any = None,
+		setups: Union[EventSetup, Sequence[EventSetup]] = None,
 		completes: Union[EventComplete, Sequence[EventComplete]] = None,
 		errors: Union[EventError, Sequence[EventError]] = None,
 	):
 		if event in self.contexts.keys():
 			raise RuntimeError('Event already exists')
+		if setups and not isinstance(setups, Sequence):
+			setups = [setups]
 		if completes and not isinstance(completes, Sequence):
 			completes = [completes]
 		if errors and not isinstance(errors, Sequence):
@@ -65,6 +72,7 @@ class EventContext(Singleton):
 			factory=factory,
 			runner=runner,
 			properties=properties,
+			setups=setups,
 			completes=completes,
 			errors=errors,
 		)
@@ -76,24 +84,3 @@ class EventContext(Singleton):
 	def events(self) -> Dict[str, Any]:
 		return {k: v.properties for k, v in self.contexts.items()}
 	
-	def attach(self, event: str, parameters: EventParameters, id: str = None):
-		if not id: id = uuid4().hex
-		self.tasks[id] = {
-			'event': event,
-			'parameters': {
-				'args': parameters.args,
-				'kwargs': parameters.kwargs,
-			}
-		}
-		return id
-
-	def detach(self, id: str):
-		if id in self.tasks: del self.tasks[id]
-		return
-
-	def status(self):
-		return {
-			'events': self.events(),
-			'concurrency': len(self.tasks.items()),
-			'tasks': self.tasks,
-		}
