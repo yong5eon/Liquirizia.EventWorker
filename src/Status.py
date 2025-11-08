@@ -41,6 +41,6 @@ class Status(Singleton):
 
 	def stats(self):
 		return {
-			'concurrency': len(self.tasks.items()),
+			'concurrency': len(self.tasks),
 			'tasks': self.tasks.copy(),
 		}
