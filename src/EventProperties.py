@@ -4,10 +4,12 @@ from .Factory import Factory
 from .EventRunner import (
 	EventRunner,
 	EventParameters,
+	EventSetup,
 	EventComplete,
 	EventError,
 )
 from .EventContext import EventContext
+from .Status import Status
 
 from os import getpid
 from threading import get_ident
@@ -24,11 +26,15 @@ class EventFactory(Factory):
 		self,
 		event: str,
 		runner: Type[EventRunner],
+		setups: Union[EventSetup, Sequence[EventSetup]] = None,
 		completes: Union[EventComplete, Sequence[EventComplete]] = None,
 		errors: Union[EventError, Sequence[EventError]] = None,
 	):
 		self.event = event
 		self.runner = runner
+		self.setups = setups
+		if self.setups and not isinstance(self.setups, Sequence):
+			self.setups = [self.setups]
 		self.completes = completes
 		if self.completes and not isinstance(self.completes, Sequence):
 			self.completes = [self.completes]
@@ -37,10 +43,12 @@ class EventFactory(Factory):
 			self.errors = [self.errors]
 		return
 	def __call__(self, *args, **kwargs):
-		ctx = EventContext()
+		status = Status()
 		try:
 			id = '{}.{}'.format(getpid(), get_ident())
-			ctx.attach(self.event, EventParameters(*args, **kwargs), id)
+			status.attach(self.event, EventParameters(*args, **kwargs), id)
+			for setup in self.setups if self.setups else []:
+				setup(EventParameters(*args, **kwargs))
 			runner = self.runner(*args) if args else self.runner()
 			completion = runner.run(**kwargs) if kwargs else runner.run()
 		except Exception as e:
@@ -50,7 +58,7 @@ class EventFactory(Factory):
 			for complete in self.completes if self.completes else []:
 				complete(EventParameters(*args, **kwargs), completion)
 		finally:
-			ctx.detach(id)
+			status.detach(id)
 			return
 
 
@@ -60,12 +68,16 @@ class EventProperties(object):
 		self,
 		event: str,
 		properties: Any = None,
+		setups: Union[EventSetup, Sequence[EventSetup]] = None,
 		completes: Union[EventComplete, Sequence[EventComplete]] = None,
 		errors: Union[EventError, Sequence[EventError]] = None,
 		factory: Type[Factory] = EventFactory,
 	):
 		self.event = event
 		self.properties = properties
+		self.setups = setups
+		if self.setups and not isinstance(self.setups, Sequence):
+			self.setups = [self.setups]
 		self.completes = completes
 		if self.completes and not isinstance(self.completes, Sequence):
 			self.completes = [self.completes]
@@ -82,6 +94,7 @@ class EventProperties(object):
 			event=self.event,
 			runner=o,
 			properties=self.properties,
+			setups=self.setups,
 			completes=self.completes,
 			errors=self.errors,
 		)

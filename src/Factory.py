@@ -3,6 +3,7 @@
 from .EventRunner import (
 	EventRunner,
 	EventParameters,
+	EventSetup,
 	EventComplete,
 	EventError,
 )
@@ -20,6 +21,7 @@ class Factory(metaclass=ABCMeta):
 		self,
 		event: str,
 		runner: Type[EventRunner],
+		setups: Union[EventSetup, Sequence[EventSetup]] = None,
 		completes: Union[EventComplete, Sequence[EventComplete]] = None,
 		errors: Union[EventError, Sequence[EventError]] = None,
 	):
