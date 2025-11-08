@@ -34,7 +34,7 @@ class EventRunner(ABC):
 class EventSetup(metaclass=ABCMeta):
 	"""Event Runner Setup Interface"""
 	@abstractmethod
-	def __call__(self):
+	def __call__(self, parameters: EventParameters):
 		raise NotImplementedError('{} must be implemented __call__'.format(self.__class__.__name__))
 
 
