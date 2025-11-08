@@ -3,6 +3,7 @@
 from .EventRunner import (
 	EventRunner,
 	EventParameters,
+	EventSetup,
 	EventComplete,
 	EventError,
 )
@@ -10,8 +11,9 @@ from .EventContext import (
 	EventContext,
 	Context,
 )
+from .Status import Status
 
-from multiprocessing import get_context
+from multiprocessing import Manager
 from multiprocessing.pool import (
 	Pool as PyProcessPool,
 	ThreadPool as PyThreadPool,
@@ -24,6 +26,7 @@ from threading import Lock
 __all__ = (
 	'Parameters',
 	'Pool',
+	'Setup',
 	'ThreadPool',
 	'ProcessPool',
 )
@@ -74,7 +77,7 @@ class Pool(ABC):
 			return
 
 		task: ApplyResult = self.pool.apply_async(
-			context.factory(event, context.runner, completes=context.completes, errors=context.errors),
+			context.factory(event, context.runner, setups=context.setups, completes=context.completes, errors=context.errors),
 			args=parameters.args,
 			kwds=parameters.kwargs,
 			callback=cleanup,  # on success
@@ -121,15 +124,61 @@ class Pool(ABC):
 			return sum(1 for task in self.runners.values() if task is not None)
 
 
+class Setup(metaclass=ABCMeta):
+	"""EventRunner Pool Setup Interface"""
+	@abstractmethod
+	def __call__(self):
+		raise NotImplementedError('{} must be implemented __call__'.format(self.__class__.__name__))
+
+
+class ThreadPoolSetup(Setup):
+	"""EventRunner ThreadPoolSetup Class"""
+	def __init__(
+		self,
+		setups: Union[Setup, Sequence[Setup]],
+	):
+		self.setups = setups
+		if self.setups and not isinstance(self.setups, Sequence):
+			self.setups = [self.setups]
+		return
+
+	def __call__(self):
+		for setup in self.setups if self.setups else []: setup()
+		return
+
+
 class ThreadPool(Pool):
 	"""EventRunner ThreadPool Class"""
-	def __init__(self, max: int = None):
-		super().__init__(PyThreadPool(max), max=max)
+	def __init__(self, max: int = None, setups: Union[Setup, Sequence[Setup]] = None):
+		self.tasks = Manager().dict()
+		self.status = Status(tasks=self.tasks)
+		super().__init__(PyThreadPool(max, initializer=ThreadPoolSetup(setups)), max=max)
+		return
+
+
+class ProcessPoolSetup(Setup):
+	"""EventRunner PoolSetup Class"""
+	def __init__(
+		self,
+		setups: Union[Setup, Sequence[Setup]],
+		tasks: Any,
+	):
+		self.tasks = tasks
+		self.setups = setups
+		if self.setups and not isinstance(self.setups, Sequence):
+			self.setups = [self.setups]
+		return
+
+	def __call__(self):
+		self.status = Status(tasks=self.tasks)
+		for setup in self.setups if self.setups else []: setup()
 		return
 
 
 class ProcessPool(Pool):
 	"""EventRunner ProcessPool Class"""
-	def __init__(self, max: int = None):
-		super().__init__(pool=PyProcessPool(max), max=max)
-		return	
+	def __init__(self, max: int = None, setups: Union[Setup, Sequence[Setup]] = None):
+		self.tasks = Manager().dict()
+		self.status = Status(tasks=self.tasks)
+		super().__init__(PyProcessPool(max, initializer=ProcessPoolSetup(setups, tasks=self.tasks)), max=max)
+		return
