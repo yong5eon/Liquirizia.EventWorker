@@ -157,7 +157,7 @@ class ThreadPool(Pool):
 
 
 class ProcessPoolSetup(Setup):
-	"""EventRunner PoolSetup Class"""
+	"""EventRunner ProcessPoolSetup Class"""
 	def __init__(
 		self,
 		setups: Union[Setup, Sequence[Setup]],
