@@ -196,7 +196,7 @@ class ProcessPool(Pool):
 	def __init__(self, max: int = None, setups: Union[Setup, Sequence[Setup]] = None):
 		self.tasks = Manager().dict()
 		self.status = Status(tasks=self.tasks)
-		if get_start_method() == 'spawn':
+		if get_start_method() in ('spawn', 'forkserver'):
 			super().__init__(PyProcessPool(max, initializer=SpawnProcessPoolSetup(setups, tasks=self.tasks)), max=max)
 		else:
 			super().__init__(PyProcessPool(max, initializer=ForkProcessPoolSetup(setups)), max=max)
