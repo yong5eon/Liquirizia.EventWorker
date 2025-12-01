@@ -55,6 +55,7 @@ target/
 __pypackages__/
 
 # MISC
+.github/instructions
 .vscode
 .idea
 .venv
