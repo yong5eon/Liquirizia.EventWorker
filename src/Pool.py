@@ -13,7 +13,7 @@ from .EventContext import (
 )
 from .Status import Status
 
-from multiprocessing import Manager
+from multiprocessing import Manager, get_start_method
 from multiprocessing.pool import (
 	Pool as PyProcessPool,
 	ThreadPool as PyThreadPool,
@@ -156,21 +156,37 @@ class ThreadPool(Pool):
 		return
 
 
-class ProcessPoolSetup(Setup):
-	"""EventRunner ProcessPoolSetup Class"""
+class SpawnProcessPoolSetup(Setup):
+	"""EventRunner ProcessPool Setup Class for Spawn"""
 	def __init__(
 		self,
 		setups: Union[Setup, Sequence[Setup]],
 		tasks: Any,
 	):
+		self.setups = setups
+		if self.setups and not isinstance(self.setups, Sequence):
+			self.setups = [self.setups]
 		self.tasks = tasks
+		return
+
+	def __call__(self):
+		self.status = Status(tasks=self.tasks)
+		for setup in self.setups if self.setups else []: setup()
+		return
+
+
+class ForkProcessPoolSetup(Setup):
+	"""EventRunner ProcessPoolSetup Class for Fork"""
+	def __init__(
+		self,
+		setups: Union[Setup, Sequence[Setup]],
+	):
 		self.setups = setups
 		if self.setups and not isinstance(self.setups, Sequence):
 			self.setups = [self.setups]
 		return
 
 	def __call__(self):
-		self.status = Status(tasks=self.tasks)
 		for setup in self.setups if self.setups else []: setup()
 		return
 
@@ -180,5 +196,8 @@ class ProcessPool(Pool):
 	def __init__(self, max: int = None, setups: Union[Setup, Sequence[Setup]] = None):
 		self.tasks = Manager().dict()
 		self.status = Status(tasks=self.tasks)
-		super().__init__(PyProcessPool(max, initializer=ProcessPoolSetup(setups, tasks=self.tasks)), max=max)
+		if get_start_method() in ('spawn', 'forkserver'):
+			super().__init__(PyProcessPool(max, initializer=SpawnProcessPoolSetup(setups, tasks=self.tasks)), max=max)
+		else:
+			super().__init__(PyProcessPool(max, initializer=ForkProcessPoolSetup(setups)), max=max)
 		return

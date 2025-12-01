@@ -150,9 +150,9 @@ if __name__ == '__main__':
 	LOG_INIT(LOG_LEVEL_DEBUG)
 	sc = StatusChecker()
 	# 멀티쓰레딩 워커를 사용을 원하면 아래 주석을 해제하세요.
-	worker = Worker(ThreadPool(), SampleInvoker)
+	# worker = Worker(ThreadPool(), SampleInvoker)
 	# 멀티프로세싱 워커를 사용을 원하면 아래 주석을 해제하세요.
-	# worker = Worker(ProcessPool(setups=Init()), SampleInvoker)
+	worker = Worker(ProcessPool(setups=Init()), SampleInvoker)
 	def stop(signal, frame):
 		LOG_INFO('EventWorker stopping...')
 		worker.stop()
