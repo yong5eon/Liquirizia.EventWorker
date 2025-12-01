@@ -157,7 +157,7 @@ class ThreadPool(Pool):
 
 
 class SpawnProcessPoolSetup(Setup):
-	"""EventRunner ProcessPool Setup Class for Spawn mode"""
+	"""EventRunner ProcessPool Setup Class for Spawn"""
 	def __init__(
 		self,
 		setups: Union[Setup, Sequence[Setup]],
