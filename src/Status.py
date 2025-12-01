@@ -16,8 +16,8 @@ __all__ = (
 
 class Status(Singleton):
 	"""Status Class"""
-	def __init__(self, tasks: Dict = None):
-		self.tasks = tasks if tasks is not None else {}
+	def __init__(self, tasks: Dict):
+		self.tasks = tasks
 		return
 	
 	def attach(self, event: str, parameters: EventParameters, id: str = None):
